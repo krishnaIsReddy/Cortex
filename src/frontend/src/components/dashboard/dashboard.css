@@ -1,0 +1,398 @@
+/* Styles for the heatmap dashboard components.
+   Risk colors live here; the score thresholds live in riskLevels.js.
+   Class names like .risk--high come from a level's `name` in riskLevels.js. */
+
+/* ---- Risk colors (one text + one background color per level) ---- */
+.risk--high {
+  --risk-color: oklch(0.78 0.14 25);
+  --risk-bg: oklch(0.27 0.07 25);
+  --risk-row-bg: oklch(0.2 0.035 25);
+}
+.risk--medium {
+  --risk-color: oklch(0.85 0.12 80);
+  --risk-bg: oklch(0.28 0.05 80);
+  --risk-row-bg: oklch(0.2 0.02 80);
+}
+.risk--low {
+  /* Low risk stays neutral so the risky files are the ones that stand out. */
+  --risk-color: var(--color-text-muted);
+  --risk-bg: var(--color-surface-raised);
+  --risk-row-bg: transparent;
+}
+
+/* ---- Dashboard layout ---- */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.dashboard__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.dashboard__title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.dashboard__subtitle {
+  color: var(--color-text-muted);
+}
+
+/* ---- Sample dataset picker (temporary, until real repos connect) ---- */
+.sample-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sample-picker__label {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.sample-picker select {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+/* ---- Repo header: which repo was analyzed ---- */
+.repo-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.repo-header__name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.repo-header__name {
+  color: var(--color-text);
+  font-size: 22px;
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.repo-header__name:hover {
+  text-decoration: underline;
+}
+
+.repo-header__tag {
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.repo-header__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+}
+
+.repo-header__facts strong {
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+/* ---- "How risk is scored" explainer ---- */
+.risk-explainer summary {
+  width: fit-content;
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.risk-explainer__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 70ch;
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.risk-explainer__levels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* ---- Filters: search box + risk level toggles ---- */
+.risk-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.risk-filters__search {
+  flex: 1 1 240px;
+  max-width: 360px;
+}
+
+.risk-filters__search input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.risk-filters__search input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.risk-filters__levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Level toggle: a badge that is also a button. Outline shows it's selected. */
+.risk-filter {
+  border: 1px solid transparent;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease-out;
+}
+
+.risk-filter:hover {
+  border-color: var(--color-border);
+}
+
+.risk-filter[aria-pressed="true"] {
+  border-color: var(--risk-color);
+}
+
+.dashboard__count {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* ---- Badge ---- */
+.risk-badge {
+  display: inline-block;
+  min-width: 64px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius);
+  background: var(--risk-bg);
+  color: var(--risk-color);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ---- Table ---- */
+/* Wrapper scrolls sideways on small screens instead of squashing columns. */
+.risk-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.risk-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.risk-table th,
+.risk-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.risk-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.risk-table th {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Numbers are right-aligned with equal-width digits so they line up. */
+.risk-table .col-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Row tint comes from the row's .risk--{level} class. */
+.risk-table tbody tr {
+  background: var(--risk-row-bg);
+}
+
+.risk-table tbody tr:hover {
+  background: var(--color-surface-raised);
+}
+
+/* File path: directory dimmed, file name bright. */
+.file-path {
+  /* Keeps paths readable on small screens; the table scrolls sideways instead. */
+  min-width: 240px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.file-path__dir {
+  color: var(--color-text-muted);
+}
+
+/* The file path is a button (to expand the row) but should look like text. */
+.file-toggle {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.file-toggle:hover .file-path__dir {
+  color: var(--color-text);
+}
+
+.file-toggle__chevron {
+  width: 1ch;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+/* Expanded author breakdown sits on the page background so it reads as inset. */
+.risk-table tbody tr.detail-row,
+.risk-table tbody tr.detail-row:hover {
+  background: var(--color-bg);
+}
+
+.author-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) 0 var(--space-2) var(--space-6);
+}
+
+.author-breakdown__caption {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.author-breakdown__list {
+  display: grid;
+  grid-template-columns: max-content minmax(120px, 240px) max-content;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Each item's three parts (name, bar, %) line up in the parent grid's columns. */
+.author-breakdown__item {
+  display: contents;
+}
+
+/* Top author share: a small bar plus the percentage. */
+.share {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.share__bar {
+  width: 64px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-surface-raised);
+  overflow: hidden;
+}
+
+.share__bar--wide {
+  width: 100%;
+}
+
+.share__fill {
+  height: 100%;
+  background: var(--risk-color);
+}
+
+.share__fill--neutral {
+  background: var(--color-text-muted);
+}
+
+/* ---- Loading, error and empty states ---- */
+.state-message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.state-message--error {
+  color: var(--color-error);
+}
+
+.skeleton-row {
+  height: 20px;
+  margin: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-surface-raised);
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-row {
+    animation: none;
+  }
+}
