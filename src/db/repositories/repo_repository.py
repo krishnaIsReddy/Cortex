@@ -39,33 +39,42 @@ async def get_or_create_repo(
 
 async def bulk_insert_commits(
     db: AsyncSession, repo_id: uuid.UUID, commit_dicts: list[dict]
-) -> list[uuid.UUID]:
-    """Insert commits in bulk and return their generated IDs."""
+) -> dict[str, uuid.UUID]:
+    """Insert new commits, skip duplicates, and return a sha→id mapping.
+
+    Uses ON CONFLICT DO NOTHING on (repo_id, sha) so re-ingesting the
+    same repo does not create duplicate rows.  After the insert, queries
+    for all commit IDs belonging to this repo so callers get the correct
+    ID for every sha — whether it was just inserted or already existed.
+    """
     if not commit_dicts:
-        return []
+        return {}
 
-    commit_ids: list[uuid.UUID] = []
-    rows = []
-    for c in commit_dicts:
-        cid = uuid.uuid4()
-        commit_ids.append(cid)
-        rows.append(
-            {
-                "id": cid,
-                "repo_id": repo_id,
-                "sha": c["sha"],
-                "author_name": c["author_name"],
-                "author_email": c["author_email"],
-                "committed_at": c["committed_at"],
-                "message": c["message"],
-                "insertions": c["insertions"],
-                "deletions": c["deletions"],
-            }
-        )
+    rows = [
+        {
+            "id": uuid.uuid4(),
+            "repo_id": repo_id,
+            "sha": c["sha"],
+            "author_name": c["author_name"],
+            "author_email": c["author_email"],
+            "committed_at": c["committed_at"],
+            "message": c["message"],
+            "insertions": c["insertions"],
+            "deletions": c["deletions"],
+        }
+        for c in commit_dicts
+    ]
 
-    stmt = pg_insert(Commit).values(rows).on_conflict_do_nothing()
+    stmt = pg_insert(Commit).values(rows).on_conflict_do_nothing(
+        index_elements=["repo_id", "sha"]
+    )
     await db.execute(stmt)
-    return commit_ids
+
+    # Build sha→id map from whatever is in the DB (inserted + pre-existing)
+    result = await db.execute(
+        select(Commit.sha, Commit.id).where(Commit.repo_id == repo_id)
+    )
+    return {row.sha: row.id for row in result}
 
 
 async def bulk_insert_file_changes(

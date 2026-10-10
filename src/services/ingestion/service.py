@@ -22,14 +22,16 @@ async def ingest_repo(repo_url: str, db: AsyncSession) -> None:
     # 3. Parse every commit from the cloned repo
     commits = parse_commits(local_path)
 
-    # 4. Bulk-insert commits and their file changes
-    commit_ids = await bulk_insert_commits(db, repo.id, commits)
+    # 4. Bulk-insert commits (skips duplicates) and get sha→id mapping
+    sha_to_id = await bulk_insert_commits(db, repo.id, commits)
 
-    for cid, commit_data in zip(commit_ids, commits):
+    # 5. Insert file changes using the correct commit ID for each sha
+    for commit_data in commits:
+        cid = sha_to_id[commit_data["sha"]]
         await bulk_insert_file_changes(db, cid, commit_data["files"])
 
-    # 5. Mark the repo as synced
+    # 6. Mark the repo as synced
     await update_last_synced(db, repo.id)
 
-    # 6. Commit the whole transaction at once
+    # 7. Commit the whole transaction at once
     await db.commit()
