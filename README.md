@@ -85,3 +85,14 @@ npm run dev
 - **PRs**: Always open a PR to `main`. At least one teammate reviews before merge.
 - **Commits**: Use conventional commits (`feat:`, `fix:`, `docs:`, etc.)
 - **Conflicts**: Stay in your assigned folders to minimize merge conflicts.
+
+## Auth setup (first run)
+
+1. Register a GitHub App at https://github.com/settings/apps/new
+   - Redirect URI: http://localhost:8000/api/auth/github/callback
+   - Check "Request user authorization (OAuth) during installation"
+   - Uncheck Webhook -> Active
+   - Repository permissions -> Contents: Read-only
+2. Copy the Client ID; generate a Client secret.
+3. `cp .env.example .env` and paste both values.
+4. `uvicorn src.main:app --reload`
