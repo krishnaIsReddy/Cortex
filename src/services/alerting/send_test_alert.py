@@ -13,7 +13,7 @@ import uuid
 from dotenv import load_dotenv
 
 from src.services.alerting.digest import build_digest
-from src.services.alerting.formatter import format_digest
+from src.services.alerting.slack_formatter import format_digest
 from src.services.alerting.notifiers.slack import SlackNotifier
 from src.services.scoring.models import FileRisk
 
