@@ -81,13 +81,15 @@ def callback(
 
 @router.get("/me")
 def me(request: Request) -> dict:
-    """Return the signed-in user, or 401 if there is no session."""
+    """Return the signed-in user, or 401 if there is no valid session."""
+    github_id = request.session.get("github_id")
     github_login = request.session.get("github_login")
-    if not github_login:
+    if github_id is None or not github_login:
+        request.session.clear()
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     return {
-        "github_id": request.session["github_id"],
+        "github_id": github_id,
         "github_login": github_login,
         "avatar_url": request.session.get("avatar_url"),
         "installation_id": request.session.get("installation_id"),
