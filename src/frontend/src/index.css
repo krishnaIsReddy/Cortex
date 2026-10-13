@@ -1,0 +1,124 @@
+/* Global design tokens and base styles for the Cortex frontend.
+   Colors are defined once here as CSS variables so every component
+   uses the same palette. Theme: dark only (see PRODUCT.md). */
+
+:root {
+  /* Neutral surfaces, from darkest (page) to lightest (borders) */
+  --color-bg: oklch(0.16 0 0);
+  --color-surface: oklch(0.2 0 0);
+  --color-surface-raised: oklch(0.24 0 0);
+  --color-border: oklch(0.3 0 0);
+
+  /* Text */
+  --color-text: oklch(0.94 0 0);
+  --color-text-muted: oklch(0.72 0 0);
+
+  /* Accent: used for focus rings and interactive highlights only */
+  --color-accent: oklch(0.75 0.08 230);
+
+  /* Error text (e.g. failed requests) */
+  --color-error: oklch(0.75 0.15 25);
+
+  /* Spacing scale (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius: 6px;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Consolas, "Liberation Mono", monospace;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+/* Page container: centered column with a 16px gutter on small screens. */
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Flex children default to min-width: auto, which lets wide content
+   (like the table) stretch the page. 0 keeps them inside the screen. */
+.app > * {
+  min-width: 0;
+}
+
+.app__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+}
+
+.app__title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.app__tagline {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* Standard button (e.g. Retry, Clear filters). */
+.button {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease-out;
+}
+
+.button:hover {
+  border-color: var(--color-text-muted);
+}
+
+/* Hides text visually but keeps it readable by screen readers (e.g. input labels). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Visible keyboard focus everywhere (never remove without replacing). */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
