@@ -4,6 +4,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from src.api.deps.config import settings
 from src.api.routes.auth import router as auth_router
+from src.api.routes.repos import router as repos_router
 
 app = FastAPI(title="Cortex")
 
@@ -23,4 +24,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(repos_router)
 app.include_router(auth_router)
