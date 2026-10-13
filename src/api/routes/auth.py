@@ -2,12 +2,13 @@ import secrets
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
+from src.api.deps.auth import get_current_user
 from src.api.deps.config import settings
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+router = APIRouter(prefix="/api/auth", tags=["auth"], redirect_slashes=False)
 
 GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
 GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
@@ -98,21 +99,9 @@ def callback(
 
 
 @router.get("/me")
-def me(request: Request) -> dict:
+def me(user: dict = Depends(get_current_user)) -> dict:
     """Return the signed-in user, or 401 if there is no valid session."""
-    github_id = request.session.get("github_id")
-    github_login = request.session.get("github_login")
-    if github_id is None or not github_login:
-        # Covers a cookie issued by an older version of the callback.
-        request.session.clear()
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    return {
-        "github_id": github_id,
-        "github_login": github_login,
-        "avatar_url": request.session.get("avatar_url"),
-        "installation_id": request.session.get("installation_id"),
-    }
+    return user
 
 
 @router.post("/logout", status_code=204)
