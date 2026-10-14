@@ -42,19 +42,19 @@
   color: var(--color-text-muted);
 }
 
-/* ---- Sample dataset picker (temporary, until real repos connect) ---- */
-.sample-picker {
+/* ---- Repo picker (live repos + sample datasets) ---- */
+.repo-picker {
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
 
-.sample-picker__label {
+.repo-picker__label {
   color: var(--color-text-muted);
   font-size: 13px;
 }
 
-.sample-picker select {
+.repo-picker select {
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -89,6 +89,11 @@
 
 .repo-header__name:hover {
   text-decoration: underline;
+}
+
+/* Pushed to the right end of the repo name row. */
+.repo-header__remove {
+  margin-left: auto;
 }
 
 .repo-header__tag {
