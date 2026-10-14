@@ -26,7 +26,8 @@ function filterFiles(files, query, selectedLevel) {
   });
 }
 
-export default function Dashboard({ repoId }) {
+// `onRemoveRepo` is optional; when given, the header shows a "Remove" button.
+export default function Dashboard({ repoId, onRemoveRepo }) {
   const { repo, files, loading, error, reload } = useRiskReport(repoId);
 
   // Filter state: search text and selected risk level (null = show all levels).
@@ -76,7 +77,7 @@ export default function Dashboard({ repoId }) {
 
   return (
     <section className="dashboard" aria-labelledby="dashboard-title">
-      {repo && <RepoHeader repo={repo} fileCount={files.length} />}
+      {repo && <RepoHeader repo={repo} fileCount={files.length} onRemove={onRemoveRepo} />}
       <RiskExplainer />
 
       <header className="dashboard__header">

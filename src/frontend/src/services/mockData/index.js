@@ -32,7 +32,7 @@ export const sampleReports = {
   "new-project": newProjectReport,
 };
 
-// Options for the sample picker, in display order. "missing-repo" has no data
+// Options for the "Sample data" group of the repo picker, in display order. "missing-repo" has no data
 // on purpose, so choosing it shows the dashboard's error state.
 export const sampleRepoOptions = [
   { id: "cortex", label: "Cortex (mixed risk)" },
