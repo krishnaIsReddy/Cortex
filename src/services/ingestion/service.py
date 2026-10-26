@@ -8,6 +8,7 @@ from src.db.repositories.repo_repository import (
 )
 from src.services.ingestion.clone import clone_or_pull
 from src.services.ingestion.parser import parse_commits
+from src.services.scoring.coupling import compute_couplings
 
 
 async def ingest_repo(repo_url: str, db: AsyncSession) -> None:
@@ -33,5 +34,8 @@ async def ingest_repo(repo_url: str, db: AsyncSession) -> None:
     # 6. Mark the repo as synced
     await update_last_synced(db, repo.id)
 
-    # 7. Commit the whole transaction at once
+    # 7. Recompute co-change coupling scores
+    await compute_couplings(db, repo.id)
+
+    # 8. Commit the whole transaction at once
     await db.commit()

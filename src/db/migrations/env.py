@@ -27,6 +27,7 @@ from src.db.models import Base  # noqa: E402
 from src.db.models.repo import Repo  # noqa: E402, F401
 from src.db.models.commit import Commit  # noqa: E402, F401
 from src.db.models.file_change import FileChange  # noqa: E402, F401
+from src.db.models.file_coupling import FileCoupling  # noqa: E402, F401
 
 target_metadata = Base.metadata
 
