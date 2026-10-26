@@ -80,6 +80,14 @@ p {
   gap: var(--space-3) var(--space-4);
 }
 
+/* Right side of the header: repo picker and sign-in. */
+.app__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+}
+
 .app__title {
   font-size: 16px;
   font-weight: 600;
@@ -91,8 +99,10 @@ p {
   font-size: 13px;
 }
 
-/* Standard button (e.g. Retry, Clear filters). */
+/* Standard button (e.g. Retry, Clear filters). Also works on links. */
 .button {
+  display: inline-block;
+  text-decoration: none;
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
