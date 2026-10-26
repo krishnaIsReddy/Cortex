@@ -13,16 +13,28 @@
 //     isSample         - mock-only flag so the UI can label this as sample data;
 //                        the real API won't send it, so the label disappears.
 //
+//   halfLifeDays: commits this many days older than the newest count half as
+//     much (added by riskApi.js for samples, sent by the real API)
+//
 //   files: per-file risk (see makeFile.js for how entries are built)
 //     path           - file path relative to the repo root
 //     riskScore      - 0 to 1, higher = riskier (see components/dashboard/riskLevels.js)
-//     topAuthor      - the author who wrote the largest share of the file
+//     topAuthor      - the author with the largest recency-weighted share
 //     topAuthorShare - that author's share of the file, 0 to 1
-//     authors        - every author's share: [{ name, share }], adding up to 1
+//     lastChangedAt  - when any commit last changed the file (ISO 8601)
+//     authors        - every author, largest share first:
+//       name            - display name
+//       share           - recency-weighted share, 0 to 1 (adds up to 1)
+//       historicalShare - all-time share, every line counted equally
+//       commitCount     - commits that changed the file (null in samples)
+//       lastCommitAt    - their latest commit to the file (null in samples)
 import { cortexReport } from "./cortex.js";
 import { dataPipelineReport } from "./dataPipeline.js";
 import { newProjectReport } from "./newProject.js";
 import { paymentsServiceReport } from "./paymentsService.js";
+
+// Matches HALF_LIFE_DAYS in the backend's src/services/scoring/ownership.py.
+export const SAMPLE_HALF_LIFE_DAYS = 180;
 
 // Sample reports keyed by repo ID (the ID the dashboard is given).
 export const sampleReports = {

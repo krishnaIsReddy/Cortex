@@ -14,7 +14,8 @@ function describeRange(level, index) {
   return `${level.min.toFixed(2)} to just under ${upperLimit.toFixed(2)}`;
 }
 
-export default function RiskExplainer() {
+// `halfLifeDays` is scoring's decay half-life (null while the report loads).
+export default function RiskExplainer({ halfLifeDays }) {
   return (
     // <details> is a native, keyboard-accessible expand/collapse element.
     <details className="risk-explainer">
@@ -31,6 +32,13 @@ export default function RiskExplainer() {
           each file was written by each author. A file's <strong>risk score</strong> is
           its top author's share, from 0 to 1: a score of 0.94 means one person
           wrote 94% of the file.
+        </p>
+        <p>
+          Recent work counts for more than old work, because people forget code
+          they haven't touched in a while. Each commit's lines are weighted by
+          age: a commit {halfLifeDays ?? 180} days older than the newest counts
+          half as much. Files nobody has changed in over a year are also
+          marked <span className="stale-tag">Stale</span>.
         </p>
 
         <ul className="risk-explainer__levels">

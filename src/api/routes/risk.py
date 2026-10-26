@@ -2,6 +2,7 @@
 
   GET    /api/repos                          -> list of ingested repos
   GET    /api/repos/{repo_id}/risk-report    -> repo details + per-file risk
+  GET    /api/repos/{repo_id}/file-detail    -> one file's authors + commits (?path=...)
   DELETE /api/repos/{repo_id}                -> remove a repo (signed-in users only)
 
 Ingesting a repo is still POST /repos (see repos.py).
@@ -14,23 +15,28 @@ user has access to the repo.
 import uuid
 from dataclasses import asdict
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.deps.auth import get_current_user
-from src.api.schemas.risk import RepoDetails, RepoSummary, RiskReport
+from src.api.schemas.risk import FileCommitOut, FileDetail, RepoDetails, RepoSummary, RiskReport
 from src.db.models.repo import Repo
 from src.db.repositories.risk_repository import (
     delete_repo,
+    file_history_contributions,
     get_contributions,
+    get_file_history,
     get_repo,
     get_repo_stats,
     list_repos,
 )
 from src.db.session import get_db
-from src.services.scoring.ownership import score_files
+from src.services.scoring.ownership import HALF_LIFE_DAYS, normalize_path, score_files
 
 router = APIRouter(prefix="/api/repos", tags=["risk"])
+
+# The drill-down lists this many of a file's most recent commits.
+MAX_DETAIL_COMMITS = 50
 
 
 def repo_display_name(url: str) -> str:
@@ -75,9 +81,51 @@ async def get_risk_report(repo_id: uuid.UUID, db: AsyncSession = Depends(get_db)
             commit_count=commit_count,
             contributor_count=contributor_count,
         ),
+        half_life_days=HALF_LIFE_DAYS,
         # Scoring results use the same field names, so asdict() converts them
         # (including the nested author shares) straight into the response model.
         files=[asdict(file) for file in files],
+    )
+
+
+@router.get("/{repo_id}/file-detail", response_model=FileDetail)
+async def get_file_detail(
+    repo_id: uuid.UUID,
+    path: str = Query(description='File path from the risk report, e.g. "src/api/auth.py"'),
+    db: AsyncSession = Depends(get_db),
+) -> FileDetail:
+    """Score one file and list its recent commits, for the dashboard's drill-down.
+
+    The path is a query parameter because file paths contain "/".
+    """
+    if await get_repo(db, repo_id) is None:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    path = normalize_path(path)
+    history = await get_file_history(db, repo_id, path)
+    # Shares are ratios, so scoring the file on its own gives the same result
+    # as in the full report (see ownership.py).
+    scored = score_files(file_history_contributions(path, history))
+    if not scored:
+        # Never seen, deleted, or not scored (e.g. a lock file or binary file).
+        raise HTTPException(status_code=404, detail="File not found in this repository")
+
+    return FileDetail(
+        **asdict(scored[0]),
+        half_life_days=HALF_LIFE_DAYS,
+        commit_count=len(history),
+        commits=[
+            FileCommitOut(
+                sha=commit.sha,
+                author_name=commit.author_name,
+                committed_at=commit.committed_at,
+                summary=commit.message.splitlines()[0] if commit.message else "",
+                change_type=commit.change_type,
+                lines_added=commit.lines_added,
+                lines_removed=commit.lines_removed,
+            )
+            for commit in history[:MAX_DETAIL_COMMITS]
+        ],
     )
 
 
