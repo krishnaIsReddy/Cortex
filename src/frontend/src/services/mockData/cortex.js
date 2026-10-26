@@ -17,11 +17,21 @@ export const cortexReport = {
   files: [
     makeFile("src/api/routes/auth.py", { josh: 0.94, krishna: 0.06 }),
     makeFile("README.md", { krishna: 0.28, josh: 0.26, muhammad: 0.24, hardeep: 0.22 }),
-    makeFile("src/services/ingestion/clone.py", { krishna: 0.81, josh: 0.12, muhammad: 0.07 }),
+    // Josh wrote most of this originally, but Krishna has done the recent work.
+    makeFile(
+      "src/services/ingestion/clone.py",
+      { krishna: 0.81, josh: 0.12, muhammad: 0.07 },
+      { historicalShares: { krishna: 0.3, josh: 0.62, muhammad: 0.08 } }
+    ),
     makeFile("src/db/models/commit.py", { krishna: 0.4, josh: 0.35, muhammad: 0.25 }),
     makeFile("src/services/scoring/ownership.py", { muhammad: 0.7, hardeep: 0.2, krishna: 0.1 }),
     makeFile("src/frontend/src/App.jsx", { hardeep: 0.33, josh: 0.32, krishna: 0.2, muhammad: 0.15 }),
-    makeFile("src/services/alerting/digest.py", { muhammad: 0.88, josh: 0.12 }),
+    // Untouched for over a year, so it is flagged as stale.
+    makeFile(
+      "src/services/alerting/digest.py",
+      { muhammad: 0.88, josh: 0.12 },
+      { lastChangedAt: "2025-06-14T09:00:00Z" }
+    ),
     makeFile("src/api/deps/db_session.py", { josh: 0.52, krishna: 0.48 }),
     makeFile("src/db/repositories/commit_repository.py", { krishna: 0.65, muhammad: 0.35 }),
     makeFile("src/frontend/src/components/dashboard/riskLevels.js", {
