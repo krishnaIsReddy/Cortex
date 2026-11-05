@@ -10,7 +10,7 @@ from src.db.models.file_coupling import FileCoupling
 from src.db.session import get_db
 from src.services.ingestion.service import ingest_repo
 
-router = APIRouter()
+router = APIRouter(prefix="/api")
 
 
 class RepoCreate(BaseModel):
@@ -52,12 +52,12 @@ async def get_couplings(
 
     return [
         {
-            "file_a": c.file_a,
-            "file_b": c.file_b,
-            "co_commit_count": c.co_commit_count,
-            "total_commits_a": c.total_commits_a,
-            "total_commits_b": c.total_commits_b,
-            "coupling_score": round(c.coupling_score, 4),
+            "fileA": c.file_a,
+            "fileB": c.file_b,
+            "coCommitCount": c.co_commit_count,
+            "totalCommitsA": c.total_commits_a,
+            "totalCommitsB": c.total_commits_b,
+            "couplingScore": round(c.coupling_score, 4),
         }
         for c in couplings
     ]

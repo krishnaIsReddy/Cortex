@@ -2,7 +2,7 @@ import subprocess
 import tempfile
 import os
 
-from src.services.ingestion.parser import parse_commits
+from src.services.ingestion.parser import _normalize_path, parse_commits
 
 
 def _create_fixture_repo(tmp_dir: str) -> str:
@@ -29,6 +29,19 @@ def _create_fixture_repo(tmp_dir: str) -> str:
     run(["git", "commit", "-m", "add second line"])
 
     return repo_path
+
+
+class TestNormalizePath:
+    """Windows separators are stored as forward slashes."""
+
+    def test_backslashes_become_forward_slashes(self):
+        assert _normalize_path("src\\api\\routes\\repos.py") == "src/api/routes/repos.py"
+
+    def test_forward_slashes_stay_the_same(self):
+        assert _normalize_path("src/api/routes/repos.py") == "src/api/routes/repos.py"
+
+    def test_none_stays_none(self):
+        assert _normalize_path(None) is None
 
 
 class TestParseCommits:
