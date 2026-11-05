@@ -45,7 +45,7 @@ def test_post_repos_requires_login(monkeypatch):
             base_url="http://test",
         ) as client:
             return await client.post(
-                "/repos", json={"url": "https://github.com/octocat/Hello-World"}
+                "/api/repos", json={"url": "https://github.com/octocat/Hello-World"}
             )
 
     response = _run(request())
@@ -66,7 +66,7 @@ def test_post_repos_accepts_logged_in_user(monkeypatch):
                 _session_cookie({"github_id": 1, "github_login": "octocat"}),
             )
             return await client.post(
-                "/repos", json={"url": "https://github.com/octocat/Hello-World"}
+                "/api/repos", json={"url": "https://github.com/octocat/Hello-World"}
             )
 
     response = _run(request())
