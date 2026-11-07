@@ -8,21 +8,22 @@ Reads SLACK_WEBHOOK_URL from the environment or from a .env file at the repo roo
 import logging
 import os
 import sys
-import uuid
 
 from dotenv import load_dotenv
 
 from src.services.alerting.digest import build_digest
 from src.services.alerting.slack_formatter import format_digest
 from src.services.alerting.notifiers.slack import SlackNotifier
-from src.services.scoring.models import FileRisk
+from src.services.scoring.ownership import AuthorShare, FileOwnership
 
-SAMPLE_REPO_ID = uuid.uuid4()
-SAMPLE_RISKS = [
-    FileRisk(SAMPLE_REPO_ID, "src/billing/super_important.py", 0.95, "alice", 0.95),
-    FileRisk(SAMPLE_REPO_ID, "src/auth/session.py", 0.88, "bob", 0.88),
-    FileRisk(SAMPLE_REPO_ID, "src/api/routes/users.py", 0.82, "alice", 0.82),
-    FileRisk(SAMPLE_REPO_ID, "README.md", 0.40, "carol", 0.40),  # below threshold, not shown
+def sample_file(path: str, owner: str, share: float) -> FileOwnership:
+    return FileOwnership(path, share, owner, share, [AuthorShare(owner, share)])
+
+SAMPLE_FILES = [
+    sample_file("src/billing/super_important.py", "alice", 0.95),
+    sample_file("src/auth/session.py", "bob", 0.88),
+    sample_file("src/api/routes/users.py", "alice", 0.82),
+    sample_file("README.md", "carol", 0.40),  # below threshold, not shown
 ]
 
 def main() -> int:
@@ -33,7 +34,7 @@ def main() -> int:
         print("SLACK_WEBHOOK_URL is not set. Add it to .env at the repo root or set it in the shell.", file=sys.stderr)
         return 1
 
-    digest = build_digest(SAMPLE_RISKS, already_alerted=set())
+    digest = build_digest(SAMPLE_FILES, already_alerted=set())
     message = format_digest("cortex/sample-repo", digest.newly_high_risk)
     message["text"] = f"[TEST] {message['text']}"
     message["blocks"].insert(0, {

@@ -1,12 +1,8 @@
-import uuid
-
 from src.services.alerting.slack_formatter import MAX_FILES_SHOWN, format_digest, repo_display_name
-from src.services.scoring.models import FileRisk
-
-REPO_ID = uuid.uuid4()
+from src.services.scoring.ownership import AuthorShare, FileOwnership
 
 def risk(path, score=0.9, owner="alice"):
-    return FileRisk(REPO_ID, path, score, owner, score)
+    return FileOwnership(path, score, owner, score, [AuthorShare(owner, score)])
 
 def file_sections(message):
     return [b for b in message["blocks"] if b["type"] == "section" and "`" in b["text"]["text"]]

@@ -1,17 +1,13 @@
-import uuid
-
 from src.services.alerting.digest import build_digest
-from src.services.scoring.models import FileRisk
-
-REPO_ID = uuid.uuid4()
+from src.services.scoring.ownership import AuthorShare, FileOwnership
 
 def risk(path, score):
-    return FileRisk(REPO_ID, path, score, "alice", score)
+    return FileOwnership(path, score, "alice", score, [AuthorShare("alice", score)])
 
 def test_new_file_above_threshold_is_reported():
     digest = build_digest([risk("a.py", 0.9)], already_alerted=set(), threshold=0.8)
 
-    assert [r.file_path for r in digest.newly_high_risk] == ["a.py"]
+    assert [r.path for r in digest.newly_high_risk] == ["a.py"]
 
 def test_file_below_threshold_is_ignored():
     digest = build_digest([risk("a.py", 0.5)], already_alerted=set(), threshold=0.8)
@@ -21,7 +17,7 @@ def test_file_below_threshold_is_ignored():
 def test_threshold_is_inclusive():
     digest = build_digest([risk("a.py", 0.8)], already_alerted=set(), threshold=0.8)
 
-    assert [r.file_path for r in digest.newly_high_risk] == ["a.py"]
+    assert [r.path for r in digest.newly_high_risk] == ["a.py"]
 
 def test_already_alerted_file_is_not_reported_again():
     digest = build_digest([risk("a.py", 0.9)], already_alerted={"a.py"}, threshold=0.8)
@@ -44,4 +40,4 @@ def test_newly_high_risk_sorted_riskiest_first():
 
     digest = build_digest(risks, already_alerted=set(), threshold=0.8)
 
-    assert [r.file_path for r in digest.newly_high_risk] == ["a.py", "b.py", "c.py"]
+    assert [r.path for r in digest.newly_high_risk] == ["a.py", "b.py", "c.py"]

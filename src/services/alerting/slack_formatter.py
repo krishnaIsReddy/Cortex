@@ -1,4 +1,4 @@
-from src.services.scoring.models import FileRisk
+from src.services.scoring.ownership import FileOwnership
 
 # Slack allows 50 blocks per message; keep digests short and readable
 MAX_FILES_SHOWN = 10
@@ -12,7 +12,7 @@ def _escape(text: str) -> str:
     """Escape the characters Slack treats as control characters in message text"""
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
-def format_digest(repo_name: str, files: list[FileRisk]) -> dict:
+def format_digest(repo_name: str, files: list[FileOwnership]) -> dict:
     """Build a Slack Block Kit message listing files that became high-risk"""
     count = f"{len(files)} file{'' if len(files) == 1 else 's'}"
     blocks = [
@@ -26,9 +26,9 @@ def format_digest(repo_name: str, files: list[FileRisk]) -> dict:
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    f"`{_escape(risk.file_path)}`\n"
-                    f"Risk {risk.risk_score:.0%} · *{_escape(risk.top_owner)}* "
-                    f"owns {risk.top_owner_share:.0%} of lines"
+                    f"`{_escape(risk.path)}`\n"
+                    f"Risk {risk.risk_score:.0%} · *{_escape(risk.top_author)}* "
+                    f"owns {risk.top_author_share:.0%} of lines"
                 ),
             },
         })
