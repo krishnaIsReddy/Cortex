@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 from base64 import b64encode
+from subprocess import CalledProcessError
 
 os.environ.setdefault("GITHUB_CLIENT_ID", "test-client")
 os.environ.setdefault("GITHUB_CLIENT_SECRET", "test-secret")
@@ -36,7 +37,8 @@ def _run(coro):
         app.dependency_overrides.clear()
 
 
-def test_post_repos_requires_login(monkeypatch):
+def test_post_repos_works_without_login(monkeypatch):
+    """Issue #1: a public repo URL is accepted without a session."""
     monkeypatch.setattr("src.api.routes.repos.ingest_repo", _fake_ingest)
 
     async def request():
@@ -49,8 +51,47 @@ def test_post_repos_requires_login(monkeypatch):
             )
 
     response = _run(request())
-    assert response.status_code == 401
-    assert response.json()["detail"] == "Not authenticated"
+    assert response.status_code == 201
+    assert response.json() == {
+        "status": "ingested",
+        "url": "https://github.com/octocat/Hello-World",
+    }
+
+
+def test_post_repos_rejects_non_github_url(monkeypatch):
+    """A URL that isn't a GitHub repo is rejected before any cloning."""
+    monkeypatch.setattr("src.api.routes.repos.ingest_repo", _fake_ingest)
+
+    async def request():
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://test",
+        ) as client:
+            return await client.post("/repos", json={"url": "https://example.com/nope"})
+
+    response = _run(request())
+    assert response.status_code == 422
+
+
+def test_post_repos_returns_404_when_clone_fails(monkeypatch):
+    """A well-formed URL for a missing or private repo is a 404, not a 500."""
+
+    async def _failing_ingest(url: str, db) -> None:
+        raise CalledProcessError(128, ["git", "clone"])
+
+    monkeypatch.setattr("src.api.routes.repos.ingest_repo", _failing_ingest)
+
+    async def request():
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://test",
+        ) as client:
+            return await client.post(
+                "/repos", json={"url": "https://github.com/octocat/does-not-exist"}
+            )
+
+    response = _run(request())
+    assert response.status_code == 404
 
 
 def test_post_repos_accepts_logged_in_user(monkeypatch):
