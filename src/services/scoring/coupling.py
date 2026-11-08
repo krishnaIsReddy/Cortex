@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, UTC
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +21,33 @@ MAX_FILES_PER_COMMIT = 50
 
 
 # ── Query builders (pure functions, return SQLAlchemy selectables) ──────
+
+
+def _deleted_paths(repo_id: uuid.UUID):
+    """Paths in the repo whose most recent change is a DELETE.
+
+    Matches the risk report so couplings never name files the file table
+    has already dropped.
+    """
+    latest_change = (
+        select(
+            FileChange.file_path,
+            FileChange.change_type,
+            func.row_number()
+            .over(
+                partition_by=FileChange.file_path,
+                order_by=Commit.committed_at.desc(),
+            )
+            .label("recency"),
+        )
+        .join(Commit, Commit.id == FileChange.commit_id)
+        .where(Commit.repo_id == repo_id)
+        .subquery("latest_change")
+    )
+    return select(latest_change.c.file_path).where(
+        latest_change.c.recency == 1,
+        latest_change.c.change_type == "DELETE",
+    )
 
 
 def _repo_commit_ids(repo_id: uuid.UUID, max_files_per_commit: int = MAX_FILES_PER_COMMIT):
@@ -44,7 +71,7 @@ def _repo_commit_ids(repo_id: uuid.UUID, max_files_per_commit: int = MAX_FILES_P
     )
 
 
-def _co_occurrence_pairs(repo_commit_sq, min_co_commits: int):
+def _co_occurrence_pairs(repo_commit_sq, min_co_commits: int, deleted_paths):
     """Subquery: file pairs that appear in the same commit >= min_co_commits times."""
     fc1 = FileChange.__table__.alias("fc1")
     fc2 = FileChange.__table__.alias("fc2")
@@ -56,21 +83,28 @@ def _co_occurrence_pairs(repo_commit_sq, min_co_commits: int):
         )
         .select_from(fc1)
         .join(fc2, (fc1.c.commit_id == fc2.c.commit_id) & (fc1.c.file_path < fc2.c.file_path))
-        .where(fc1.c.commit_id.in_(select(repo_commit_sq.c.id)))
+        .where(
+            fc1.c.commit_id.in_(select(repo_commit_sq.c.id)),
+            fc1.c.file_path.not_in(deleted_paths),
+            fc2.c.file_path.not_in(deleted_paths),
+        )
         .group_by(fc1.c.file_path, fc2.c.file_path)
         .having(func.count(func.distinct(fc1.c.commit_id)) >= min_co_commits)
         .subquery("co_pairs")
     )
 
 
-def _file_total_commits(repo_commit_sq):
+def _file_total_commits(repo_commit_sq, deleted_paths):
     """Subquery: how many distinct commits each file appears in."""
     return (
         select(
             FileChange.file_path,
             func.count(func.distinct(FileChange.commit_id)).label("total_commits"),
         )
-        .where(FileChange.commit_id.in_(select(repo_commit_sq.c.id)))
+        .where(
+            FileChange.commit_id.in_(select(repo_commit_sq.c.id)),
+            FileChange.file_path.not_in(deleted_paths),
+        )
         .group_by(FileChange.file_path)
         .subquery("file_totals")
     )
@@ -164,15 +198,17 @@ async def compute_couplings(
     """Compute co-change coupling scores for all file pairs in a repo.
 
     Commits that touch max_files_per_commit or more files are ignored so
-    bulk imports do not look like coupling. Does not commit. Callers
-    (e.g. ingest_repo) own the transaction so a failed upsert batch rolls
-    back the whole ingestion.
+    bulk imports do not look like coupling. Paths whose newest change is
+    a DELETE are skipped, matching the risk report. Does not commit.
+    Callers (e.g. ingest_repo) own the transaction so a failed upsert
+    batch rolls back the whole ingestion.
     """
 
     # 1. Build subqueries
+    deleted_paths = _deleted_paths(repo_id)
     repo_commit_sq = _repo_commit_ids(repo_id, max_files_per_commit)
-    co_pairs = _co_occurrence_pairs(repo_commit_sq, min_co_commits)
-    file_totals = _file_total_commits(repo_commit_sq)
+    co_pairs = _co_occurrence_pairs(repo_commit_sq, min_co_commits, deleted_paths)
+    file_totals = _file_total_commits(repo_commit_sq, deleted_paths)
 
     # 2. Join pairs with per-file totals
     ft_a = file_totals.alias("ft_a")
@@ -191,8 +227,14 @@ async def compute_couplings(
 
     # 3. Execute and score
     rows = (await db.execute(query)).all()
+
+    # Replace this repo's couplings so pairs that no longer qualify
+    # (deleted files, fewer co-commits, etc.) do not linger.
+    await db.execute(delete(FileCoupling).where(FileCoupling.repo_id == repo_id))
     if not rows:
+        await db.flush()
         return
+
     values = _build_upsert_values(rows, repo_id)
 
     # 4. Upsert in batches under Postgres' bind-parameter limit

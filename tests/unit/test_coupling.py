@@ -7,7 +7,7 @@ so local data is left unchanged.
 
 import os
 import uuid
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 from types import SimpleNamespace
 
 import pytest
@@ -343,6 +343,86 @@ class TestComputeCouplings:
             .where(Commit.repo_id == repo_id)
         )
         assert stored_changes == 9
+
+    @pytest.mark.asyncio
+    async def test_deleted_files_are_excluded_from_couplings(self, db_session):
+        """A path whose newest change is DELETE must not appear in pairs."""
+        repo_id = await _seed_repo(
+            db_session,
+            "https://example.com/deleted-coupling",
+            [
+                ["a.py", "b.py", "c.py"],
+                ["a.py", "b.py", "c.py"],
+                ["a.py", "b.py", "c.py"],
+            ],
+        )
+
+        delete_commit = Commit(
+            repo_id=repo_id,
+            sha="d" * 40,
+            author_name="Test",
+            author_email="test@test.com",
+            # Newer than the seeded MODIFY commits (which share one timestamp).
+            committed_at=datetime.now(UTC) + timedelta(seconds=1),
+            message="delete a.py",
+            insertions=0,
+            deletions=1,
+        )
+        db_session.add(delete_commit)
+        await db_session.flush()
+        db_session.add(
+            FileChange(
+                commit_id=delete_commit.id,
+                file_path="a.py",
+                change_type="DELETE",
+                lines_added=0,
+                lines_removed=1,
+            )
+        )
+        await db_session.flush()
+
+        await compute_couplings(db_session, repo_id)
+
+        pairs = {(row.file_a, row.file_b) for row in await _couplings(db_session, repo_id)}
+        assert pairs == {("b.py", "c.py")}
+        assert all("a.py" not in pair for pair in pairs)
+
+    @pytest.mark.asyncio
+    async def test_recompute_drops_pairs_for_deleted_files(self, db_session):
+        """Stale couplings naming a later-deleted file are removed on recompute."""
+        repo_id = await _seed_repo(
+            db_session,
+            "https://example.com/stale-deleted",
+            [["a.py", "b.py"], ["a.py", "b.py"], ["a.py", "b.py"]],
+        )
+        await compute_couplings(db_session, repo_id)
+        assert len(await _couplings(db_session, repo_id)) == 1
+
+        delete_commit = Commit(
+            repo_id=repo_id,
+            sha="e" * 40,
+            author_name="Test",
+            author_email="test@test.com",
+            committed_at=datetime.now(UTC) + timedelta(seconds=1),
+            message="delete a.py",
+            insertions=0,
+            deletions=1,
+        )
+        db_session.add(delete_commit)
+        await db_session.flush()
+        db_session.add(
+            FileChange(
+                commit_id=delete_commit.id,
+                file_path="a.py",
+                change_type="DELETE",
+                lines_added=0,
+                lines_removed=1,
+            )
+        )
+        await db_session.flush()
+
+        await compute_couplings(db_session, repo_id)
+        assert await _couplings(db_session, repo_id) == []
 
 
 class TestUpsertBatching:
