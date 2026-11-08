@@ -50,8 +50,8 @@ export function normalizeRepoUrl(url) {
   return url.trim().replace(/\/+$/, "").replace(/\.git$/, "");
 }
 
-// Asks the backend to clone and ingest a public GitHub repo. Requires the user
-// to be signed in. Slow for big repos: the request lasts until ingestion ends.
+// Asks the backend to clone and ingest a public GitHub repo. No session needed
+// for public repos. Slow for big repos: the request lasts until ingestion ends.
 // Returns a Promise of { status, url }.
 export function ingestRepo(url) {
   return fetchJson("/repos", {

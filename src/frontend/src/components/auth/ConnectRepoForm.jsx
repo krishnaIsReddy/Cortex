@@ -1,6 +1,7 @@
 // "Connect a repository" box: the user pastes a public GitHub URL, the backend
 // clones it and reads its commit history, then the dashboard switches to it.
-// Signed-out users are asked to sign in first (the backend requires it).
+// Works signed out — a public repo needs no session (issue #1). Signing in is
+// only needed for private repositories.
 import { useState } from "react";
 import "./auth.css";
 import { LOGIN_URL } from "../../services/authApi.js";
@@ -11,10 +12,14 @@ const GITHUB_REPO_URL = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+$/;
 
 // Turns a failed ingestion into a message the user can act on.
 function describeIngestError(err) {
-  if (err.status === 401) return "Your session has expired. Sign in with GitHub again.";
-  if (err.status === 500) {
-    return "Could not analyze this repository. Check that the URL is correct and the repo is public.";
+  if (err.status === 404) {
+    return "Could not find that repository. Check the URL is correct and the repo is public.";
   }
+  if (err.status === 422) {
+    return "Enter a GitHub repository URL, e.g. https://github.com/owner/repo";
+  }
+  if (err.status === 401) return "Your session has expired. Sign in with GitHub again.";
+  if (err.status === 500) return "Something went wrong analyzing this repository. Try again.";
   return err.message;
 }
 
@@ -22,14 +27,6 @@ export default function ConnectRepoForm({ user, onConnected }) {
   const [url, setUrl] = useState("");
   const [working, setWorking] = useState(false);
   const [error, setError] = useState(null);
-
-  if (!user) {
-    return (
-      <p className="connect-repo connect-repo--signed-out">
-        <a href={LOGIN_URL}>Sign in with GitHub</a> to analyze a repository.
-      </p>
-    );
-  }
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -43,9 +40,9 @@ export default function ConnectRepoForm({ user, onConnected }) {
     setWorking(true);
     setError(null);
     try {
-      await ingestRepo(repoUrl);
+      const { url: canonicalUrl } = await ingestRepo(repoUrl);
       setUrl("");
-      await onConnected(repoUrl);
+      await onConnected(canonicalUrl ?? repoUrl);
     } catch (err) {
       console.error(`ConnectRepoForm: ingesting ${repoUrl} failed`, err);
       setError(describeIngestError(err));
@@ -73,6 +70,12 @@ export default function ConnectRepoForm({ user, onConnected }) {
           {working ? "Analyzing…" : "Analyze"}
         </button>
       </div>
+
+      {!user && (
+        <p className="connect-repo__hint">
+          <a href={LOGIN_URL}>Sign in with GitHub</a> to analyze private repositories.
+        </p>
+      )}
 
       {/* Announced to screen readers as the status changes. */}
       <p className="connect-repo__status" aria-live="polite">

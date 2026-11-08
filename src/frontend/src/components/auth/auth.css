@@ -25,14 +25,6 @@
   background: var(--color-surface);
 }
 
-.connect-repo--signed-out {
-  color: var(--color-text-muted);
-}
-
-.connect-repo--signed-out a {
-  color: var(--color-accent);
-}
-
 .connect-repo__label {
   font-weight: 500;
 }
@@ -74,4 +66,13 @@
 
 .connect-repo__error {
   color: var(--color-error);
+}
+
+.connect-repo__hint {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.connect-repo__hint a {
+  color: var(--color-accent);
 }
