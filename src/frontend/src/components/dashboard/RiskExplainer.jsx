@@ -36,7 +36,7 @@ export default function RiskExplainer({ halfLifeDays }) {
         <p>
           Recent work counts for more than old work, because people forget code
           they haven't touched in a while. Each commit's lines are weighted by
-          age: a commit {halfLifeDays ?? 180} days older than the newest counts
+          age: a commit {halfLifeDays ?? 365} days older than the newest counts
           half as much. Files nobody has changed in over a year are also
           marked <span className="stale-tag">Stale</span>.
         </p>

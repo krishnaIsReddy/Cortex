@@ -34,7 +34,7 @@ import { newProjectReport } from "./newProject.js";
 import { paymentsServiceReport } from "./paymentsService.js";
 
 // Matches HALF_LIFE_DAYS in the backend's src/services/scoring/ownership.py.
-export const SAMPLE_HALF_LIFE_DAYS = 180;
+export const SAMPLE_HALF_LIFE_DAYS = 365;
 
 // Sample reports keyed by repo ID (the ID the dashboard is given).
 export const sampleReports = {

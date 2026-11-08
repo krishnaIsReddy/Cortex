@@ -74,5 +74,5 @@ class FileDetail(FileRiskOut):
     """Response of GET /api/repos/{repo_id}/file-detail?path=..."""
 
     half_life_days: int
-    commit_count: int  # every commit that changed the file
-    commits: list[FileCommitOut]  # newest first, at most MAX_DETAIL_COMMITS
+    commit_count: int  # every non-bot commit that changed the file
+    commits: list[FileCommitOut]  # newest first, bots excluded, at most MAX_DETAIL_COMMITS

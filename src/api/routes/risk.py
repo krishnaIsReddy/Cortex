@@ -22,8 +22,8 @@ from src.api.deps.auth import get_current_user
 from src.api.schemas.risk import FileCommitOut, FileDetail, RepoDetails, RepoSummary, RiskReport
 from src.db.models.repo import Repo
 from src.db.repositories.risk_repository import (
+    count_file_commits,
     delete_repo,
-    file_history_contributions,
     get_contributions,
     get_file_history,
     get_repo,
@@ -102,18 +102,23 @@ async def get_file_detail(
         raise HTTPException(status_code=404, detail="Repository not found")
 
     path = normalize_path(path)
-    history = await get_file_history(db, repo_id, path)
-    # Shares are ratios, so scoring the file on its own gives the same result
-    # as in the full report (see ownership.py).
-    scored = score_files(file_history_contributions(path, history))
-    if not scored:
+    # Score the whole repo, exactly like the risk report, rather than this file
+    # alone. Shares would match either way, but an author's display name is
+    # picked across every file, so this keeps the names identical too.
+    scored = next(
+        (file for file in score_files(await get_contributions(db, repo_id)) if file.path == path),
+        None,
+    )
+    if scored is None:
         # Never seen, deleted, or not scored (e.g. a lock file or binary file).
         raise HTTPException(status_code=404, detail="File not found in this repository")
 
+    history = await get_file_history(db, repo_id, path, limit=MAX_DETAIL_COMMITS)
+
     return FileDetail(
-        **asdict(scored[0]),
+        **asdict(scored),
         half_life_days=HALF_LIFE_DAYS,
-        commit_count=len(history),
+        commit_count=await count_file_commits(db, repo_id, path),
         commits=[
             FileCommitOut(
                 sha=commit.sha,
@@ -124,7 +129,7 @@ async def get_file_detail(
                 lines_added=commit.lines_added,
                 lines_removed=commit.lines_removed,
             )
-            for commit in history[:MAX_DETAIL_COMMITS]
+            for commit in history
         ],
     )
 

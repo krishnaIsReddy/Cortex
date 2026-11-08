@@ -109,16 +109,36 @@ class FileCommit:
     lines_removed: int
 
 
-async def get_file_history(
-    db: AsyncSession, repo_id: uuid.UUID, path: str
-) -> list[FileCommit]:
-    """Return every commit that changed `path`, newest first.
+def _human_changes_to_file(repo_id: uuid.UUID, path: str):
+    """WHERE conditions for changes to `path` in the repo, excluding bots.
 
-    Returns an empty list if the file was never seen or has been deleted, the
-    same files the risk report leaves out. `path` uses "/" separators; history
-    stored with Windows "\\" separators is matched too.
+    `path` uses "/" separators; history stored with Windows "\\" separators is
+    matched too. Bots are excluded the same way as ownership.is_bot, so the
+    drill-down's commits agree with its "last changed" date.
     """
-    stored_paths = {path, path.replace("/", "\\")}
+    return (
+        Commit.repo_id == repo_id,
+        FileChange.file_path.in_({path, path.replace("/", "\\")}),
+        Commit.author_name.not_like("%[bot]%"),
+        Commit.author_email.not_like("%[bot]%"),
+    )
+
+
+async def count_file_commits(db: AsyncSession, repo_id: uuid.UUID, path: str) -> int:
+    """Return how many (non-bot) commits changed `path`."""
+    result = await db.execute(
+        select(func.count())
+        .select_from(FileChange)
+        .join(Commit, Commit.id == FileChange.commit_id)
+        .where(*_human_changes_to_file(repo_id, path))
+    )
+    return result.scalar_one()
+
+
+async def get_file_history(
+    db: AsyncSession, repo_id: uuid.UUID, path: str, limit: int
+) -> list[FileCommit]:
+    """Return the `limit` newest (non-bot) commits that changed `path`."""
     result = await db.execute(
         select(
             Commit.sha,
@@ -131,12 +151,9 @@ async def get_file_history(
             FileChange.lines_removed,
         )
         .join(Commit, Commit.id == FileChange.commit_id)
-        .where(
-            Commit.repo_id == repo_id,
-            FileChange.file_path.in_(stored_paths),
-            FileChange.file_path.not_in(_deleted_paths(repo_id)),
-        )
+        .where(*_human_changes_to_file(repo_id, path))
         .order_by(Commit.committed_at.desc())
+        .limit(limit)
     )
     return [
         FileCommit(
@@ -150,20 +167,6 @@ async def get_file_history(
             lines_removed=row.lines_removed or 0,
         )
         for row in result
-    ]
-
-
-def file_history_contributions(path: str, history: list[FileCommit]) -> list[Contribution]:
-    """Turn a file's history into scoring input, so one file can be scored alone."""
-    return [
-        Contribution(
-            file_path=path,
-            author_email=commit.author_email,
-            author_name=commit.author_name,
-            lines_added=commit.lines_added,
-            committed_at=commit.committed_at,
-        )
-        for commit in history
     ]
 
 
