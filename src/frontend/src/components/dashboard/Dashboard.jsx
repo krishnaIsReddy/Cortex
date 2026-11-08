@@ -7,6 +7,7 @@ import FileRiskTable from "./FileRiskTable.jsx";
 import RepoHeader from "./RepoHeader.jsx";
 import RiskExplainer from "./RiskExplainer.jsx";
 import RiskFilters from "./RiskFilters.jsx";
+import RiskTrend from "./RiskTrend.jsx";
 import { getRiskLevel } from "./riskLevels.js";
 import { useRiskReport } from "../../hooks/useRiskReport.js";
 
@@ -79,6 +80,9 @@ export default function Dashboard({ repoId, onRemoveRepo }) {
     <section className="dashboard" aria-labelledby="dashboard-title">
       {repo && <RepoHeader repo={repo} fileCount={files.length} onRemove={onRemoveRepo} />}
       <RiskExplainer />
+
+      {/* Skipped when the report failed, so the page shows one error, not two. */}
+      {!error && <RiskTrend repoId={repoId} />}
 
       <header className="dashboard__header">
         <h2 id="dashboard-title" className="dashboard__title">File risk</h2>

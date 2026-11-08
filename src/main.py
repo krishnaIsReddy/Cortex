@@ -6,6 +6,7 @@ from src.api.deps.config import settings
 from src.api.routes.auth import router as auth_router
 from src.api.routes.repos import router as repos_router
 from src.api.routes.risk import router as risk_router
+from src.api.routes.trend import router as trend_router
 
 app = FastAPI(title="Cortex")
 
@@ -28,3 +29,4 @@ app.add_middleware(
 app.include_router(repos_router)
 app.include_router(auth_router)
 app.include_router(risk_router)
+app.include_router(trend_router)
