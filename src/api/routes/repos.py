@@ -11,8 +11,9 @@ from src.services.ingestion.service import ingest_repo
 
 router = APIRouter()
 
-# https://github.com/owner/repo, with an optional .git or trailing slash.
-GITHUB_REPO_URL = re.compile(r"^https://github\.com/[\w.-]+/[\w.-]+?(?:\.git)?/?$")
+GITHUB_REPO_URL = re.compile(
+    r"^https://github\.com/(?P<owner>[\w.-]+)/(?P<repo>[\w.-]+?)(?:\.git)?/?$"
+)
 
 
 class RepoCreate(BaseModel):
@@ -23,12 +24,14 @@ class RepoCreate(BaseModel):
     @field_validator("url")
     @classmethod
     def must_be_a_github_repo_url(cls, value: str) -> str:
-        value = value.strip()
-        if not GITHUB_REPO_URL.match(value):
+        match = GITHUB_REPO_URL.match(value.strip())
+        if not match:
             raise ValueError(
                 "Must be a GitHub repository URL, e.g. https://github.com/owner/repo"
             )
-        return value
+        
+        owner, repo = match.group("owner"), match.group("repo")
+        return f"https://github.com/{owner.lower()}/{repo.lower()}"
 
 
 @router.post("/repos", status_code=201)

@@ -54,7 +54,7 @@ def test_post_repos_works_without_login(monkeypatch):
     assert response.status_code == 201
     assert response.json() == {
         "status": "ingested",
-        "url": "https://github.com/octocat/Hello-World",
+        "url": "https://github.com/octocat/hello-world",
     }
 
 
@@ -114,7 +114,7 @@ def test_post_repos_accepts_logged_in_user(monkeypatch):
     assert response.status_code == 201
     assert response.json() == {
         "status": "ingested",
-        "url": "https://github.com/octocat/Hello-World",
+        "url": "https://github.com/octocat/hello-world",
     }
 
 
