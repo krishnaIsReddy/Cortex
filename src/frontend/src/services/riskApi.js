@@ -5,6 +5,7 @@
 //   - Sample datasets (services/mockData/), identified by short names like "cortex".
 import { sampleReports } from "./mockData/index.js";
 import { sampleTrends } from "./mockData/trends.js";
+import { SAMPLE_HALF_LIFE_DAYS, sampleReports } from "./mockData/index.js";
 
 // Fake network delay for sample data so the loading state is visible.
 const MOCK_DELAY_MS = 500;
@@ -74,7 +75,7 @@ export function removeRepo(repoId) {
   return fetchJson(`/api/repos/${repoId}`, { method: "DELETE" });
 }
 
-// Returns a Promise of the risk report for a repo: { repo, files }.
+// Returns a Promise of the risk report for a repo: { repo, halfLifeDays, files }.
 // See mockData/index.js for the fields of each part.
 // Rejects with an Error if there is no report for the repo.
 export async function getRiskReport(repoId) {
@@ -90,7 +91,26 @@ export async function getRiskReport(repoId) {
   }
 
   // Return copies so callers can sort/modify them without changing the mock data.
-  return { repo: { ...report.repo }, files: [...report.files] };
+  return { repo: { ...report.repo }, halfLifeDays: SAMPLE_HALF_LIFE_DAYS, files: [...report.files] };
+}
+
+// Returns a Promise of one file's drill-down: the file's risk fields (as in
+// the report) plus { halfLifeDays, commitCount, commits }. `commits` holds the
+// newest commits that changed the file:
+//   [{ sha, authorName, committedAt, summary, changeType, linesAdded, linesRemoved }]
+// Sample data has no commit history, so its `commits` is empty.
+export async function getFileDetail(repoId, path) {
+  if (isLiveRepoId(repoId)) {
+    return fetchJson(`/api/repos/${repoId}/file-detail?path=${encodeURIComponent(path)}`);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
+
+  const file = sampleReports[repoId]?.files.find((f) => f.path === path);
+  if (!file) {
+    throw new Error(`No file "${path}" in repository "${repoId}".`);
+  }
+  return { ...file, halfLifeDays: SAMPLE_HALF_LIFE_DAYS, commitCount: null, commits: [] };
 }
 
 // Returns a Promise of a repo's risk history, oldest month first:
