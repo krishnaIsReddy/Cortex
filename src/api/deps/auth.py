@@ -14,3 +14,15 @@ def get_current_user(request: Request) -> dict:
         "avatar_url": request.session.get("avatar_url"),
         "installation_id": request.session.get("installation_id"),
     }
+
+def get_current_user_optional(request: Request) -> dict | None:
+    """Return the signed-in user, or None when nobody is signed in.
+
+    For endpoints that work anonymously (public repos) but can do more
+    when there is a session. Reuses get_current_user so a stale cookie is
+    still cleared rather than treated as a valid anonymous visitor.
+    """
+    try:
+        return get_current_user(request)
+    except HTTPException:
+        return None
