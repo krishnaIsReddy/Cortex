@@ -10,7 +10,8 @@ function formatDateTime(isoString) {
   }).format(new Date(isoString));
 }
 
-export default function RepoHeader({ repo, fileCount }) {
+// `onRemove` is optional: when given, a "Remove" button is shown.
+export default function RepoHeader({ repo, fileCount, onRemove }) {
   return (
     <div className="repo-header">
       <div className="repo-header__name-row">
@@ -18,16 +19,26 @@ export default function RepoHeader({ repo, fileCount }) {
           {repo.name}
         </a>
         {repo.isSample && <span className="repo-header__tag">Sample data</span>}
+        {onRemove && (
+          <button type="button" className="button repo-header__remove" onClick={onRemove}>
+            Remove
+          </button>
+        )}
       </div>
 
-      {/* One line of facts about what was analyzed. */}
+      {/* One line of facts about what was analyzed. Branch and date are
+          skipped when unknown (the backend doesn't record the branch yet). */}
       <ul className="repo-header__facts">
-        <li>
-          Branch <strong>{repo.branch}</strong>
-        </li>
-        <li>
-          Analyzed <time dateTime={repo.analyzedAt}>{formatDateTime(repo.analyzedAt)}</time>
-        </li>
+        {repo.branch && (
+          <li>
+            Branch <strong>{repo.branch}</strong>
+          </li>
+        )}
+        {repo.analyzedAt && (
+          <li>
+            Analyzed <time dateTime={repo.analyzedAt}>{formatDateTime(repo.analyzedAt)}</time>
+          </li>
+        )}
         <li>{pluralize(repo.commitCount, "commit")}</li>
         <li>{pluralize(repo.contributorCount, "contributor")}</li>
         <li>{pluralize(fileCount, "file")}</li>

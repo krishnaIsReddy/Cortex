@@ -1,0 +1,77 @@
+/* Styles for sign-in and repo-connection components. */
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.user-badge__avatar {
+  border-radius: 50%;
+}
+
+.user-badge__login {
+  font-weight: 500;
+}
+
+/* ---- Connect a repository ---- */
+.connect-repo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.connect-repo--signed-out {
+  color: var(--color-text-muted);
+}
+
+.connect-repo--signed-out a {
+  color: var(--color-accent);
+}
+
+.connect-repo__label {
+  font-weight: 500;
+}
+
+.connect-repo__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.connect-repo__row input {
+  flex: 1 1 280px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.connect-repo__row input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.connect-repo .button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.connect-repo__status {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* Hide the empty status line so it doesn't add a gap. */
+.connect-repo__status:empty {
+  display: none;
+}
+
+.connect-repo__error {
+  color: var(--color-error);
+}

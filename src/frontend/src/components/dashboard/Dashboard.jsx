@@ -1,8 +1,10 @@
 // Heatmap dashboard (v1): loads a repo's risk report and shows which repo was
 // analyzed, how scoring works, and every file in a table sorted by risk.
+// Clicking a file swaps the table for that file's drill-down.
 // Handles every state explicitly so failures are never silent.
 import { useState } from "react";
 import "./dashboard.css";
+import FileDetail from "./FileDetail.jsx";
 import FileRiskTable from "./FileRiskTable.jsx";
 import RepoHeader from "./RepoHeader.jsx";
 import RiskExplainer from "./RiskExplainer.jsx";
@@ -30,6 +32,19 @@ function filterFiles(files, query, selectedLevel) {
 export default function Dashboard({ repoId }) {
   const { repo, files, loading, error, reload } = useRiskReport(repoId);
   const { status: couplingStatus } = useCouplings(repoId);
+// `onRemoveRepo` is optional; when given, the header shows a "Remove" button.
+export default function Dashboard({ repoId, onRemoveRepo }) {
+  const { repo, halfLifeDays, files, loading, error, reload } = useRiskReport(repoId);
+
+  // The file whose drill-down is open (null = show the table), and the file
+  // the user last came back from, so the table can return focus to it.
+  const [selectedPath, setSelectedPath] = useState(null);
+  const [lastViewedPath, setLastViewedPath] = useState(null);
+
+  const closeFile = () => {
+    setLastViewedPath(selectedPath);
+    setSelectedPath(null);
+  };
 
   // Filter state: search text and selected risk level (null = show all levels).
   const [query, setQuery] = useState("");
@@ -73,7 +88,23 @@ export default function Dashboard({ repoId }) {
       </div>
     );
   } else {
-    content = <FileRiskTable files={visibleFiles} />;
+    content = (
+      <FileRiskTable
+        files={visibleFiles}
+        onSelectFile={setSelectedPath}
+        focusPath={lastViewedPath}
+      />
+    );
+  }
+
+  // Filters stay in state while a file is open, so going back keeps them.
+  if (selectedPath !== null && repo) {
+    return (
+      <section className="dashboard">
+        <RepoHeader repo={repo} fileCount={files.length} onRemove={onRemoveRepo} />
+        <FileDetail repoId={repoId} repoUrl={repo.url} path={selectedPath} onBack={closeFile} />
+      </section>
+    );
   }
 
   return (
@@ -90,12 +121,14 @@ export default function Dashboard({ repoId }) {
         </p>
       )}
       <RiskExplainer />
+      {repo && <RepoHeader repo={repo} fileCount={files.length} onRemove={onRemoveRepo} />}
+      <RiskExplainer halfLifeDays={halfLifeDays} />
 
       <header className="dashboard__header">
         <h2 id="dashboard-title" className="dashboard__title">File risk</h2>
         <p className="dashboard__subtitle">
           Files where most of the code was written by one person, riskiest first.
-          Click a file to see all of its authors.
+          Click a file to see its authors and recent commits.
         </p>
       </header>
 
