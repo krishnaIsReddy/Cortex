@@ -1,4 +1,5 @@
 import datetime
+from collections import defaultdict
 
 from src.services.scoring.ownership import Contribution, score_files
 from src.services.scoring.trend import (
@@ -6,8 +7,11 @@ from src.services.scoring.trend import (
     MonthlyLastChange,
     month_end,
     months_before,
+    recency_weight,
     score_trend,
 )
+
+UTC = datetime.timezone.utc
 
 
 def month(text):
@@ -16,15 +20,39 @@ def month(text):
     return datetime.date(year, mon, 1)
 
 
-def lines(when, path, email, count):
-    """Shorthand for one month of one author's lines; the name is the email's user part."""
+def lines(when, path, email, count, weighted=None):
+    """Shorthand for one month of one author's lines; the name is the email's
+    user part. Weighted as if every line was committed mid-month, unless given."""
+    year, mon = map(int, when.split("-"))
+    if weighted is None:
+        weighted = count * recency_weight(datetime.datetime(year, mon, 15, tzinfo=UTC))
     return MonthlyContribution(
         month=month(when),
         file_path=path,
         author_email=email,
         author_name=email.split("@")[0],
         lines_added=count,
+        weighted_lines=weighted,
     )
+
+
+def commit(when, path, email, count):
+    """One per-commit row, as ownership.score_files takes them. `when` is "2026-01-15"."""
+    committed_at = datetime.datetime.fromisoformat(when).replace(tzinfo=UTC)
+    return Contribution(path, email, email.split("@")[0], count, committed_at)
+
+
+def monthly_totals(commits):
+    """Add per-commit rows up into monthly rows, like trend_repository does in SQL."""
+    totals = defaultdict(lambda: [0, 0.0])
+    for c in commits:
+        key = (c.committed_at.date().replace(day=1), c.file_path, c.author_email, c.author_name)
+        totals[key][0] += c.lines_added
+        totals[key][1] += c.lines_added * recency_weight(c.committed_at)
+    return [
+        MonthlyContribution(m, path, email, name, lines_added, weighted)
+        for (m, path, email, name), (lines_added, weighted) in totals.items()
+    ]
 
 
 def change(when, path, change_type):
@@ -82,8 +110,12 @@ def test_share_changes_as_ownership_spreads():
 
 
 def test_threshold_is_inclusive():
+    # Exact weights, so the share is exactly 0.7 with no float rounding.
     [point] = score_trend(
-        [lines("2026-01", "a.py", "ana@x.com", 70), lines("2026-01", "a.py", "ben@x.com", 30)],
+        [
+            lines("2026-01", "a.py", "ana@x.com", 70, weighted=70.0),
+            lines("2026-01", "a.py", "ben@x.com", 30, weighted=30.0),
+        ],
         [],
         {month("2026-01"): 1},
     )
@@ -120,21 +152,44 @@ def test_skips_the_same_files_and_authors_as_the_risk_report():
     assert point.file_count == 1
 
 
-def test_latest_point_matches_scoring_all_history_at_once():
-    rows = [
-        lines("2026-01", "a.py", "ana@x.com", 50),
-        lines("2026-02", "a.py", "ben@x.com", 10),
-        lines("2026-02", "b.py", "ben@x.com", 30),
-        lines("2026-03", "c.py", "ana@x.com", 5),
-        lines("2026-03", "c.py", "cat@x.com", 5),
+def test_every_month_matches_score_files_on_the_commits_so_far():
+    commits = [
+        commit("2024-01-10", "a.py", "ana@x.com", 100),
+        commit("2024-02-03", "b.py", "ben@x.com", 40),
+        commit("2024-02-20", "b.py", "ana@x.com", 45),
+        commit("2025-06-01", "a.py", "ben@x.com", 30),
+        commit("2025-06-30", "c.py", "Cat@X.com", 5),  # same author as cat@x.com
+        commit("2026-01-15", "c.py", "cat@x.com", 5),
+        commit("2026-01-31", "c.py", "dan@x.com", 3),
+        commit("2026-01-31", "yarn.lock", "ana@x.com", 900),
     ]
-    points = score_trend(rows, [], {month("2026-01"): 1, month("2026-02"): 1, month("2026-03"): 1})
+    commits_per_month = defaultdict(int)
+    for c in commits:
+        commits_per_month[c.committed_at.date().replace(day=1)] += 1
 
-    report = score_files([
-        Contribution(r.file_path, r.author_email, r.author_name, r.lines_added) for r in rows
-    ])
-    expected_high = sum(1 for f in report if f.risk_score >= 0.7)
-    assert (points[-1].high_risk_file_count, points[-1].file_count) == (expected_high, len(report))
+    points = score_trend(monthly_totals(commits), [], dict(commits_per_month))
+
+    assert len(points) == 25  # Jan 2024 to Jan 2026
+    for point in points:
+        so_far = [c for c in commits if c.committed_at.date() <= point.period_end]
+        report = score_files(so_far)
+        expected_high = sum(1 for f in report if f.risk_score >= 0.7)
+        assert (point.high_risk_file_count, point.file_count) == (expected_high, len(report)), point
+
+
+def test_recent_lines_count_for_more_than_old_ones():
+    # ana wrote more lines, but 4 years earlier: by line count ben has 37.5%,
+    # recency-weighted (half-life 365 days) he has about 90%.
+    [*_, point] = score_trend(
+        monthly_totals([
+            commit("2022-01-15", "a.py", "ana@x.com", 100),
+            commit("2026-01-15", "a.py", "ben@x.com", 60),
+        ]),
+        [],
+        {month("2022-01"): 1, month("2026-01"): 1},
+    )
+
+    assert point.high_risk_file_count == 1
 
 
 def test_month_end_handles_leap_years():

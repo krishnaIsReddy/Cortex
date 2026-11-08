@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react";
 import { getRiskReport } from "../services/riskApi.js";
 
-// Returns { repo, files, loading, error, reload }:
+// Returns { repo, halfLifeDays, files, loading, error, reload }:
 //   repo    - details about the analyzed repo (null until loaded)
+//   halfLifeDays - scoring's decay half-life (null until loaded)
 //   files   - array of file risk objects (empty until loaded)
 //   loading - true while the request is in progress
 //   error   - an Error if the request failed, otherwise null
 //   reload  - call to fetch the report again (e.g. a "Retry" button)
 export function useRiskReport(repoId) {
-  const [report, setReport] = useState({ repo: null, files: [] });
+  const [report, setReport] = useState({ repo: null, halfLifeDays: null, files: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -44,5 +45,12 @@ export function useRiskReport(repoId) {
     };
   }, [repoId, reloadCount]);
 
-  return { repo: report.repo, files: report.files, loading, error, reload };
+  return {
+    repo: report.repo,
+    halfLifeDays: report.halfLifeDays,
+    files: report.files,
+    loading,
+    error,
+    reload,
+  };
 }

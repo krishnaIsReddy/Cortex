@@ -238,7 +238,7 @@
   vertical-align: middle;
 }
 
-.risk-table tbody tr:last-child td {
+.risk-table tbody tr:last-child > * {
   border-bottom: none;
 }
 
@@ -278,7 +278,7 @@
   color: var(--color-text-muted);
 }
 
-/* The file path is a button (to expand the row) but should look like text. */
+/* The file path is a button (to open the drill-down) but should look like text. */
 .file-toggle {
   display: flex;
   align-items: baseline;
@@ -297,45 +297,6 @@
   color: var(--color-text);
 }
 
-.file-toggle__chevron {
-  width: 1ch;
-  flex-shrink: 0;
-  color: var(--color-text-muted);
-}
-
-/* Expanded author breakdown sits on the page background so it reads as inset. */
-.risk-table tbody tr.detail-row,
-.risk-table tbody tr.detail-row:hover {
-  background: var(--color-bg);
-}
-
-.author-breakdown {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-2) 0 var(--space-2) var(--space-6);
-}
-
-.author-breakdown__caption {
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
-.author-breakdown__list {
-  display: grid;
-  grid-template-columns: max-content minmax(120px, 240px) max-content;
-  align-items: center;
-  gap: var(--space-2) var(--space-3);
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-/* Each item's three parts (name, bar, %) line up in the parent grid's columns. */
-.author-breakdown__item {
-  display: contents;
-}
-
 /* Top author share: a small bar plus the percentage. */
 .share {
   display: flex;
@@ -352,10 +313,6 @@
   overflow: hidden;
 }
 
-.share__bar--wide {
-  width: 100%;
-}
-
 .share__fill {
   height: 100%;
   background: var(--risk-color);
@@ -363,6 +320,131 @@
 
 .share__fill--neutral {
   background: var(--color-text-muted);
+}
+
+/* ---- Shared table cell helpers ---- */
+.risk-table .col-nowrap {
+  white-space: nowrap;
+}
+
+.risk-table .text-muted {
+  color: var(--color-text-muted);
+}
+
+/* Neutral tag for files nobody has changed in a long time. Not a risk color:
+   staleness is context for the score, not a risk level of its own. */
+.stale-tag {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  vertical-align: 1px;
+}
+
+/* ---- File drill-down ---- */
+.file-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.file-detail__back {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.file-detail__back:hover {
+  text-decoration: underline;
+}
+
+.file-detail__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.file-detail__title {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Focused by script when the view opens; the outline would look like a bug. */
+.file-detail__title:focus {
+  outline: none;
+}
+
+.file-detail__note {
+  max-width: 70ch;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--risk-color, var(--color-border));
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.file-detail__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.file-detail__heading {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.file-detail__caption {
+  max-width: 70ch;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* Inside the drill-down the risk class is on the whole view, so stop it
+   tinting every author and commit row. */
+.file-detail .risk-table tbody tr {
+  background: transparent;
+}
+
+.file-detail .risk-table tbody tr:hover {
+  background: var(--color-surface-raised);
+}
+
+.risk-table .author-name {
+  color: var(--color-text);
+  font-size: inherit;
+  font-weight: 500;
+}
+
+.commit-summary {
+  min-width: 240px;
+}
+
+.commit-sha {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.commit-sha a {
+  color: var(--color-accent);
+}
+
+.lines-added {
+  color: oklch(0.78 0.12 150);
+}
+
+.lines-removed {
+  color: var(--color-text-muted);
 }
 
 /* ---- Loading, error and empty states ---- */

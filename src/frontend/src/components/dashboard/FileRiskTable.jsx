@@ -1,14 +1,10 @@
 // Table of files sorted by risk (highest first). Each row is tinted with its
 // risk level's color, which makes the list scannable as a simple "heatmap".
-// Clicking a file name expands a row underneath showing every author's share.
-import { Fragment, useState } from "react";
-import AuthorBreakdown from "./AuthorBreakdown.jsx";
+// Clicking a file name opens its drill-down (see FileDetail.jsx).
+import { useEffect } from "react";
 import RiskBadge from "./RiskBadge.jsx";
-import { formatPercent } from "./format.js";
+import { formatDate, formatPercent, formatRelative, isStale } from "./format.js";
 import { getRiskLevel, riskClassName } from "./riskLevels.js";
-
-// Number of columns, used so the expanded detail row spans the full width.
-const COLUMN_COUNT = 5;
 
 // Returns a new array sorted by riskScore, highest first (input is not changed).
 function sortByRiskDescending(files) {
@@ -39,18 +35,18 @@ function withBreakHints(dir) {
   );
 }
 
-// Turns a path into a valid, unique HTML id for aria-controls.
-function detailRowId(path) {
-  return `authors-${path.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+// Turns a path into a valid, unique HTML id for the file's button.
+function fileButtonId(path) {
+  return `file-${path.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 }
 
-export default function FileRiskTable({ files }) {
-  // Path of the file whose author breakdown is open (only one at a time).
-  const [expandedPath, setExpandedPath] = useState(null);
-
-  const toggleExpanded = (path) => {
-    setExpandedPath((current) => (current === path ? null : path));
-  };
+// `onSelectFile(path)` opens a file's drill-down. `focusPath` is the file to
+// focus on mount: the one the user just came back from, so keyboard users
+// keep their place in the list.
+export default function FileRiskTable({ files, onSelectFile, focusPath }) {
+  useEffect(() => {
+    if (focusPath) document.getElementById(fileButtonId(focusPath))?.focus();
+  }, [focusPath]);
 
   const sortedFiles = sortByRiskDescending(files);
 
@@ -64,62 +60,54 @@ export default function FileRiskTable({ files }) {
             <th scope="col" className="col-number">Score</th>
             <th scope="col">Top author</th>
             <th scope="col" className="col-number">Top author share</th>
+            <th scope="col">Last changed</th>
           </tr>
         </thead>
         <tbody>
           {sortedFiles.map((file) => {
             const level = getRiskLevel(file.riskScore);
             const { dir, name } = splitPath(file.path);
-            const isExpanded = expandedPath === file.path;
 
             return (
-              <Fragment key={file.path}>
-                <tr className={riskClassName(level)}>
-                  <td className="file-path">
-                    {/* A real button so the row can be opened with the keyboard too. */}
-                    <button
-                      type="button"
-                      className="file-toggle"
-                      aria-expanded={isExpanded}
-                      aria-controls={detailRowId(file.path)}
-                      onClick={() => toggleExpanded(file.path)}
-                    >
-                      <span className="file-toggle__chevron" aria-hidden="true">
-                        {isExpanded ? "▾" : "▸"}
-                      </span>
-                      <span>
-                        <span className="file-path__dir">{withBreakHints(dir)}</span>
-                        {name}
-                      </span>
-                    </button>
-                  </td>
-                  <td>
-                    <RiskBadge level={level} />
-                  </td>
-                  <td className="col-number">{file.riskScore.toFixed(2)}</td>
-                  <td>{file.topAuthor}</td>
-                  <td className="col-number">
-                    <div className="share">
-                      {/* Decorative bar; the percentage next to it is the real value. */}
-                      <div className="share__bar" aria-hidden="true">
-                        <div
-                          className="share__fill"
-                          style={{ width: formatPercent(file.topAuthorShare) }}
-                        />
-                      </div>
-                      {formatPercent(file.topAuthorShare)}
+              <tr key={file.path} className={riskClassName(level)}>
+                <td className="file-path">
+                  {/* A real button so the file can be opened with the keyboard too. */}
+                  <button
+                    type="button"
+                    id={fileButtonId(file.path)}
+                    className="file-toggle"
+                    onClick={() => onSelectFile(file.path)}
+                  >
+                    <span>
+                      <span className="file-path__dir">{withBreakHints(dir)}</span>
+                      {name}
+                    </span>
+                  </button>
+                </td>
+                <td>
+                  <RiskBadge level={level} />
+                </td>
+                <td className="col-number">{file.riskScore.toFixed(2)}</td>
+                <td>{file.topAuthor}</td>
+                <td className="col-number">
+                  <div className="share">
+                    {/* Decorative bar; the percentage next to it is the real value. */}
+                    <div className="share__bar" aria-hidden="true">
+                      <div
+                        className="share__fill"
+                        style={{ width: formatPercent(file.topAuthorShare) }}
+                      />
                     </div>
-                  </td>
-                </tr>
-
-                {isExpanded && (
-                  <tr id={detailRowId(file.path)} className={`detail-row ${riskClassName(level)}`}>
-                    <td colSpan={COLUMN_COUNT}>
-                      <AuthorBreakdown authors={file.authors} />
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
+                    {formatPercent(file.topAuthorShare)}
+                  </div>
+                </td>
+                <td className="col-nowrap">
+                  <time dateTime={file.lastChangedAt} title={formatDate(file.lastChangedAt)}>
+                    {formatRelative(file.lastChangedAt)}
+                  </time>
+                  {isStale(file.lastChangedAt) && <span className="stale-tag">Stale</span>}
+                </td>
+              </tr>
             );
           })}
         </tbody>

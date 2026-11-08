@@ -6,12 +6,17 @@ Basically a helper module to grab commits during a given time frame.
 import datetime
 import uuid
 
-from sqlalchemy import Date, cast, func, select
+from sqlalchemy import Date, Float, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models.commit import Commit
 from src.db.models.file_change import FileChange
-from src.services.scoring.trend import MonthlyContribution, MonthlyLastChange
+from src.services.scoring.ownership import HALF_LIFE_DAYS
+from src.services.scoring.trend import (
+    WEIGHT_REFERENCE,
+    MonthlyContribution,
+    MonthlyLastChange,
+)
 
 
 def _commit_month():
@@ -19,10 +24,20 @@ def _commit_month():
     return cast(func.date_trunc("month", func.timezone("UTC", Commit.committed_at)), Date)
 
 
+def _recency_weight(half_life_days: float):
+    """SQL expression: trend.recency_weight() of the commit's date, i.e.
+    2 ^ (days since WEIGHT_REFERENCE / half-life)."""
+    seconds_since_reference = (
+        cast(func.extract("epoch", Commit.committed_at), Float) - WEIGHT_REFERENCE.timestamp()
+    )
+    half_life_seconds = cast(half_life_days * 86400, Float)
+    return func.power(cast(2, Float), seconds_since_reference / half_life_seconds)
+
+
 async def get_monthly_contributions(
-    db: AsyncSession, repo_id: uuid.UUID
+    db: AsyncSession, repo_id: uuid.UUID, half_life_days: float = HALF_LIFE_DAYS
 ) -> list[MonthlyContribution]:
-    """Return lines added per (file, author, month)."""
+    """Return lines added per (file, author, month), raw and recency-weighted."""
     month = _commit_month()
     result = await db.execute(
         select(
@@ -31,6 +46,7 @@ async def get_monthly_contributions(
             Commit.author_name,
             month.label("month"),
             func.sum(FileChange.lines_added).label("lines_added"),
+            func.sum(FileChange.lines_added * _recency_weight(half_life_days)).label("weighted_lines"),
         )
         .join(Commit, Commit.id == FileChange.commit_id)
         .where(Commit.repo_id == repo_id)
@@ -43,6 +59,7 @@ async def get_monthly_contributions(
             author_email=row.author_email,
             author_name=row.author_name,
             lines_added=row.lines_added or 0,
+            weighted_lines=row.weighted_lines or 0.0,
         )
         for row in result
     ]
