@@ -101,6 +101,12 @@ def months_before(month: datetime.date, count: int) -> datetime.date:
     return datetime.date(index // 12, index % 12 + 1, 1)
 
 
+def window_start(last_month: datetime.date, months: int) -> datetime.date:
+    """First month of a window of `months` months ending at `last_month`,
+    e.g. (2026-10-01, 12) -> 2025-11-01."""
+    return months_before(last_month, months - 1)
+
+
 def score_trend(
     contributions: list[MonthlyContribution],
     last_changes: list[MonthlyLastChange],
@@ -112,8 +118,10 @@ def score_trend(
     (with unchanged scores) so the chart's spacing is even.
 
     `months` keeps only the latest N months. Earlier history still counts
-    towards every point; those months just aren't scored, which keeps long
-    histories quick.
+    towards every point; those months just aren't scored. The inputs may
+    already have all history before the window added into the window's first
+    month (trend_repository does this, so less data leaves the database); the
+    points are the same either way.
 
     Returns [] when the repo has no commits.
     """
@@ -137,7 +145,7 @@ def score_trend(
     points = []
     month = min(commits_per_month)
     last_month = max(commits_per_month)
-    first_scored_month = month if months is None else max(month, months_before(last_month, months - 1))
+    first_scored_month = month if months is None else max(month, window_start(last_month, months))
     while month <= last_month:
         for row in contributions_by_month[month]:
             # Skipped the same way as in score_files.

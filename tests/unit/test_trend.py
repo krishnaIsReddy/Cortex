@@ -9,6 +9,7 @@ from src.services.scoring.trend import (
     months_before,
     recency_weight,
     score_trend,
+    window_start,
 )
 
 UTC = datetime.timezone.utc
@@ -235,3 +236,57 @@ def test_months_before_crosses_years():
     assert months_before(datetime.date(2026, 3, 1), 4) == datetime.date(2025, 11, 1)
     assert months_before(datetime.date(2026, 1, 1), 0) == datetime.date(2026, 1, 1)
     assert months_before(datetime.date(2026, 1, 1), 25) == datetime.date(2023, 12, 1)
+
+
+def test_history_collapsed_before_the_window_gives_the_same_points():
+    """trend_repository adds all history before the window into the window's
+    first month. The points must be the same as with month-by-month history."""
+    commits = [
+        commit("2024-03-05", "a.py", "ana@x.com", 100),
+        commit("2024-03-20", "old.py", "ana@x.com", 30),
+        commit("2024-09-12", "a.py", "ben@x.com", 20),
+        commit("2025-02-01", "b.py", "ben@x.com", 50),
+        commit("2025-07-15", "a.py", "cat@x.com", 40),
+        commit("2026-01-10", "b.py", "ana@x.com", 45),
+        commit("2026-03-03", "c.py", "dan@x.com", 10),
+    ]
+    changes = [
+        change("2024-03", "a.py", "ADD"),
+        change("2024-03", "old.py", "ADD"),
+        change("2024-05", "old.py", "DELETE"),  # deleted before the window
+        change("2025-02", "b.py", "ADD"),
+        change("2025-04", "b.py", "DELETE"),
+        change("2025-06", "b.py", "ADD"),  # re-added inside the window
+    ]
+    commits_per_month = defaultdict(int)
+    for c in commits:
+        commits_per_month[c.committed_at.date().replace(day=1)] += 1
+    full = score_trend(monthly_totals(commits), changes, dict(commits_per_month), months=12)
+
+    # What the database returns with `since`: earlier months moved into it.
+    since = window_start(max(commits_per_month), 12)
+    def bucket(m):
+        return max(m, since)
+    collapsed_rows = defaultdict(lambda: [0, 0.0])
+    for row in monthly_totals(commits):
+        key = (bucket(row.month), row.file_path, row.author_email, row.author_name)
+        collapsed_rows[key][0] += row.lines_added
+        collapsed_rows[key][1] += row.weighted_lines
+    collapsed_changes = {}
+    for row in sorted(changes, key=lambda r: r.month):  # the latest change per bucket wins
+        collapsed_changes[(bucket(row.month), row.file_path)] = row.change_type
+    collapsed_commits = defaultdict(int)
+    for m, count in commits_per_month.items():
+        collapsed_commits[bucket(m)] += count
+
+    collapsed = score_trend(
+        [MonthlyContribution(m, path, email, name, lines_added, weighted)
+         for (m, path, email, name), (lines_added, weighted) in collapsed_rows.items()],
+        [MonthlyLastChange(m, path, change_type) for (m, path), change_type in collapsed_changes.items()],
+        dict(collapsed_commits),
+        months=12,
+    )
+
+    assert since == month("2025-04")
+    assert len(full) == 12
+    assert collapsed == full
