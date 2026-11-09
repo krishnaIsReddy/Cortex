@@ -1,21 +1,15 @@
+import re
 import uuid
+from subprocess import CalledProcessError
 
-from pydantic import BaseModel
-from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.deps.auth import get_current_user
+from src.api.deps.auth import get_current_user, get_current_user_optional
 from src.api.schemas.coupling import CouplingsResponse, FileCouplingOut
 from src.db.models.file_coupling import FileCoupling
-import re
-from subprocess import CalledProcessError
-
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, field_validator
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.api.deps.auth import get_current_user_optional
 from src.db.session import get_db
 from src.services.ingestion.service import ingest_repo
 from src.services.scoring.coupling_jobs import (
@@ -24,7 +18,9 @@ from src.services.scoring.coupling_jobs import (
     mark_coupling_pending,
 )
 
-router = APIRouter(prefix="/api")
+# Ingest stays at POST /repos (see vite proxy + riskApi.js). Couplings live under
+# /api/repos/... with the other dashboard read APIs.
+router = APIRouter()
 
 GITHUB_REPO_URL = re.compile(
     r"^https://github\.com/(?P<owner>[\w.-]+)/(?P<repo>[\w.-]+?)(?:\.git)?/?$"
@@ -44,7 +40,7 @@ class RepoCreate(BaseModel):
             raise ValueError(
                 "Must be a GitHub repository URL, e.g. https://github.com/owner/repo"
             )
-        
+
         owner, repo = match.group("owner"), match.group("repo")
         return f"https://github.com/{owner.lower()}/{repo.lower()}"
 
@@ -53,15 +49,27 @@ class RepoCreate(BaseModel):
 async def connect_repo(
     payload: RepoCreate,
     background_tasks: BackgroundTasks,
-    user: dict = Depends(get_current_user),
     user: dict | None = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ):
     """Clone a public repo, parse its history, and store it in Postgres.
 
+    Works without a session: issue #1 is "authenticate with GitHub (OAuth)
+    *or* paste a public repo URL". Private repos will need the signed-in
+    user's installation token, which is why `user` is resolved here even
+    though only public cloning is wired up today.
+
     Co-change coupling runs in the background after the response is sent.
     """
-    repo = await ingest_repo(payload.url, db)
+    try:
+        repo = await ingest_repo(payload.url, db)
+    except CalledProcessError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail="Could not clone that repository. Check the URL is correct "
+            "and the repository is public.",
+        ) from exc
+
     mark_coupling_pending(repo.id)
     background_tasks.add_task(compute_couplings_job, repo.id)
     return {
@@ -72,7 +80,7 @@ async def connect_repo(
     }
 
 
-@router.get("/repos/{repo_id}/couplings", response_model=CouplingsResponse)
+@router.get("/api/repos/{repo_id}/couplings", response_model=CouplingsResponse)
 async def get_couplings(
     repo_id: uuid.UUID,
     min_score: float = Query(0.3, ge=0.0, le=1.0, description="Minimum coupling score to include"),
@@ -117,18 +125,3 @@ async def get_couplings(
             for c in couplings
         ],
     )
-    Works without a session: issue #1 is "authenticate with GitHub (OAuth)
-    *or* paste a public repo URL". Private repos will need the signed-in
-    user's installation token, which is why `user` is resolved here even
-    though only public cloning is wired up today.
-    """
-    try:
-        await ingest_repo(payload.url, db)
-    except CalledProcessError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail="Could not clone that repository. Check the URL is correct "
-            "and the repository is public.",
-        ) from exc
-
-    return {"status": "ingested", "url": payload.url}

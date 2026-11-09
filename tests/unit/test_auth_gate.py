@@ -55,7 +55,7 @@ def test_post_repos_works_without_login(monkeypatch):
             base_url="http://test",
         ) as client:
             return await client.post(
-                "/api/repos", json={"url": "https://github.com/octocat/Hello-World"}
+                "/repos", json={"url": "https://github.com/octocat/Hello-World"}
             )
 
     response = _run(request())
@@ -63,6 +63,8 @@ def test_post_repos_works_without_login(monkeypatch):
     assert response.json() == {
         "status": "ingested",
         "url": "https://github.com/octocat/hello-world",
+        "repoId": "11111111-1111-1111-1111-111111111111",
+        "couplingStatus": "pending",
     }
 
 
@@ -116,17 +118,16 @@ def test_post_repos_accepts_logged_in_user(monkeypatch):
                 _session_cookie({"github_id": 1, "github_login": "octocat"}),
             )
             return await client.post(
-                "/api/repos", json={"url": "https://github.com/octocat/Hello-World"}
+                "/repos", json={"url": "https://github.com/octocat/Hello-World"}
             )
 
     response = _run(request())
     assert response.status_code == 201
     assert response.json() == {
         "status": "ingested",
-        "url": "https://github.com/octocat/Hello-World",
+        "url": "https://github.com/octocat/hello-world",
         "repoId": "11111111-1111-1111-1111-111111111111",
         "couplingStatus": "pending",
-        "url": "https://github.com/octocat/hello-world",
     }
 
 
