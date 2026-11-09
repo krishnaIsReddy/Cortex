@@ -43,6 +43,8 @@ async function fetchJson(url, options) {
   return response.json();
 }
 
+// Returns a Promise of the risk report for a repo: { repo, files }.
+// See mockData/index.js for the fields of each part. `files` is unsorted.
 // Cleans up a pasted repo URL so the same repo always gets the same URL:
 // trims spaces, and removes a trailing "/" or ".git".
 // e.g. " https://github.com/owner/repo.git/ " -> "https://github.com/owner/repo"
@@ -109,4 +111,15 @@ export async function getFileDetail(repoId, path) {
     throw new Error(`No file "${path}" in repository "${repoId}".`);
   }
   return { ...file, halfLifeDays: SAMPLE_HALF_LIFE_DAYS, commitCount: null, commits: [] };
+}
+
+// Returns a Promise of { status, couplings } for a live repo.
+//   status     - "pending" | "ready" | "failed"
+//   couplings  - file pairs (empty while pending/failed)
+// Sample repos have no coupling data, so they report ready with an empty list.
+export async function getCouplings(repoId) {
+  if (!isLiveRepoId(repoId)) {
+    return { status: "ready", couplings: [] };
+  }
+  return fetchJson(`/api/repos/${repoId}/couplings`);
 }

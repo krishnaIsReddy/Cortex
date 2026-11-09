@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Index, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -9,6 +9,9 @@ from . import Base
 
 class FileChange(Base):
     __tablename__ = "file_changes"
+    __table_args__ = (
+        Index("ix_file_changes_commit_file", "commit_id", "file_path"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4

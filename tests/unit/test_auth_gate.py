@@ -19,7 +19,14 @@ async def _fake_db():
     yield None
 
 
-async def _fake_ingest(url: str, db) -> None:
+async def _fake_ingest(url: str, db):
+    from types import SimpleNamespace
+    import uuid
+
+    return SimpleNamespace(id=uuid.UUID("11111111-1111-1111-1111-111111111111"))
+
+
+async def _fake_coupling_job(repo_id) -> None:
     return None
 
 
@@ -40,6 +47,7 @@ def _run(coro):
 def test_post_repos_works_without_login(monkeypatch):
     """Issue #1: a public repo URL is accepted without a session."""
     monkeypatch.setattr("src.api.routes.repos.ingest_repo", _fake_ingest)
+    monkeypatch.setattr("src.api.routes.repos.compute_couplings_job", _fake_coupling_job)
 
     async def request():
         async with httpx.AsyncClient(
@@ -55,6 +63,8 @@ def test_post_repos_works_without_login(monkeypatch):
     assert response.json() == {
         "status": "ingested",
         "url": "https://github.com/octocat/hello-world",
+        "repoId": "11111111-1111-1111-1111-111111111111",
+        "couplingStatus": "pending",
     }
 
 
@@ -96,6 +106,7 @@ def test_post_repos_returns_404_when_clone_fails(monkeypatch):
 
 def test_post_repos_accepts_logged_in_user(monkeypatch):
     monkeypatch.setattr("src.api.routes.repos.ingest_repo", _fake_ingest)
+    monkeypatch.setattr("src.api.routes.repos.compute_couplings_job", _fake_coupling_job)
 
     async def request():
         async with httpx.AsyncClient(
@@ -115,6 +126,8 @@ def test_post_repos_accepts_logged_in_user(monkeypatch):
     assert response.json() == {
         "status": "ingested",
         "url": "https://github.com/octocat/hello-world",
+        "repoId": "11111111-1111-1111-1111-111111111111",
+        "couplingStatus": "pending",
     }
 
 

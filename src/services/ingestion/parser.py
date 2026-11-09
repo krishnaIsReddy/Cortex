@@ -1,6 +1,13 @@
 from pydriller import Repository as PDRepository
 
 
+def _normalize_path(path: str | None) -> str | None:
+    """Store paths with forward slashes so Windows checkouts match the dashboard."""
+    if path is None:
+        return None
+    return path.replace("\\", "/")
+
+
 def parse_commits(local_repo_path: str) -> list[dict]:
     """Walk every commit in the repo via PyDriller and return structured dicts.
 
@@ -22,8 +29,8 @@ def parse_commits(local_repo_path: str) -> list[dict]:
 
         for mod in commit.modified_files:
             commit_data["files"].append({
-                "file_path": mod.new_path or mod.old_path,
-                "old_path": mod.old_path,
+                "file_path": _normalize_path(mod.new_path or mod.old_path),
+                "old_path": _normalize_path(mod.old_path),
                 "change_type": mod.change_type.name,
                 "lines_added": mod.added_lines,
                 "lines_removed": mod.deleted_lines,

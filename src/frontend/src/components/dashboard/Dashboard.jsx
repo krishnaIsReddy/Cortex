@@ -10,6 +10,7 @@ import RepoHeader from "./RepoHeader.jsx";
 import RiskExplainer from "./RiskExplainer.jsx";
 import RiskFilters from "./RiskFilters.jsx";
 import { getRiskLevel } from "./riskLevels.js";
+import { useCouplings } from "../../hooks/useCouplings.js";
 import { useRiskReport } from "../../hooks/useRiskReport.js";
 
 // Number of placeholder rows shown while data is loading.
@@ -28,6 +29,9 @@ function filterFiles(files, query, selectedLevel) {
   });
 }
 
+export default function Dashboard({ repoId }) {
+  const { repo, files, loading, error, reload } = useRiskReport(repoId);
+  const { status: couplingStatus } = useCouplings(repoId);
 // `onRemoveRepo` is optional; when given, the header shows a "Remove" button.
 export default function Dashboard({ repoId, onRemoveRepo }) {
   const { repo, halfLifeDays, files, loading, error, reload } = useRiskReport(repoId);
@@ -105,6 +109,18 @@ export default function Dashboard({ repoId, onRemoveRepo }) {
 
   return (
     <section className="dashboard" aria-labelledby="dashboard-title">
+      {repo && <RepoHeader repo={repo} fileCount={files.length} />}
+      {couplingStatus === "pending" && (
+        <p className="coupling-status" aria-live="polite">
+          Determining coupling…
+        </p>
+      )}
+      {couplingStatus === "failed" && (
+        <p className="coupling-status coupling-status--error" role="alert">
+          Could not determine file coupling for this repository.
+        </p>
+      )}
+      <RiskExplainer />
       {repo && <RepoHeader repo={repo} fileCount={files.length} onRemove={onRemoveRepo} />}
       <RiskExplainer halfLifeDays={halfLifeDays} />
 
