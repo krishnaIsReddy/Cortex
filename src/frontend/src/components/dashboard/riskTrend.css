@@ -1,0 +1,135 @@
+.risk-trend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.risk-trend__summary {
+  color: var(--color-text-muted);
+}
+
+.risk-trend__summary strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* Title on the left, time range switch on the right (wraps on phones). */
+.risk-trend__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Two joined buttons; the selected one is raised and brighter. */
+.risk-trend__range {
+  display: flex;
+}
+
+.risk-trend__range button {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.risk-trend__range button + button {
+  border-left: none;
+}
+
+.risk-trend__range button:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.risk-trend__range button:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.risk-trend__range button:hover {
+  color: var(--color-text);
+}
+
+.risk-trend__range button[aria-pressed="true"] {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+.risk-trend__chart--refreshing {
+  opacity: 0.6;
+  transition: opacity 150ms ease-out;
+}
+
+.risk-trend__chart {
+  padding: var(--space-3) var(--space-2) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.risk-trend__skeleton {
+  height: 262px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .risk-trend__skeleton {
+    animation: none;
+  }
+}
+
+.risk-trend__tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-raised);
+  font-size: 13px;
+}
+
+.risk-trend__tooltip-month,
+.risk-trend__tooltip-detail {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.risk-trend__tooltip-value {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.risk-trend__tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Key for the dot colors, below the chart. */
+.risk-trend__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.risk-trend__table summary {
+  width: fit-content;
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.risk-trend__table .risk-table-wrapper {
+  margin-top: var(--space-2);
+}

@@ -4,6 +4,7 @@
 //   - Live repos, ingested by the backend. Their IDs are UUIDs from the API.
 //   - Sample datasets (services/mockData/), identified by short names like "cortex".
 import { SAMPLE_HALF_LIFE_DAYS, sampleReports } from "./mockData/index.js";
+import { sampleTrends } from "./mockData/trends.js";
 
 // Fake network delay for sample data so the loading state is visible.
 const MOCK_DELAY_MS = 500;
@@ -113,6 +114,28 @@ export async function getFileDetail(repoId, path) {
   return { ...file, halfLifeDays: SAMPLE_HALF_LIFE_DAYS, commitCount: null, commits: [] };
 }
 
+// Returns a Promise of a repo's risk history, oldest month first:
+// [{ periodEnd, highRiskShare, highRiskFileCount, fileCount, commitCount }]
+// (see mockData/trends.js for the fields), one per month from the first
+// commit to the latest. An empty array means the repo has no commits yet.
+// `months` keeps only the latest N months (null = all of the history).
+// Rejects with an Error if there is no history for the repo.
+export async function getRiskTrend(repoId, months = null) {
+  if (isLiveRepoId(repoId)) {
+    const query = months ? `?months=${months}` : "";
+    return fetchJson(`/api/repos/${repoId}/risk-trend${query}`);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
+
+  const trend = sampleTrends[repoId];
+  if (!trend) {
+    throw new Error(`No risk history found for repository "${repoId}".`);
+  }
+
+  // Return copies so callers can't change the mock data.
+  const latest = months ? trend.slice(-months) : trend;
+  return latest.map((point) => ({ ...point }));
 // Returns a Promise of { status, couplings } for a live repo.
 //   status     - "pending" | "ready" | "failed"
 //   couplings  - file pairs (empty while pending/failed)
