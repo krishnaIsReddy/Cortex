@@ -2,7 +2,7 @@
 // scoring pairs in a background task, status stays "pending" so the UI can
 // show "Determining coupling…".
 import { useEffect, useState } from "react";
-import { getCouplings, isLiveRepoId } from "../services/riskApi.js";
+import { getCouplings } from "../services/riskApi.js";
 
 const POLL_MS = 2000;
 
@@ -14,18 +14,13 @@ const POLL_MS = 2000;
 export function useCouplings(repoId) {
   const [status, setStatus] = useState(null);
   const [couplings, setCouplings] = useState([]);
-  const [loading, setLoading] = useState(() => isLiveRepoId(repoId));
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (!isLiveRepoId(repoId)) {
-      setStatus(null);
-      setCouplings([]);
-      setLoading(false);
-      setError(null);
-      return undefined;
-    }
+  const [reloadCount, setReloadCount] = useState(0);
+  const reload = () => setReloadCount((count) => count + 1);
 
+  useEffect(() => {
     let ignore = false;
     let timerId = null;
 
@@ -59,7 +54,7 @@ export function useCouplings(repoId) {
       ignore = true;
       if (timerId !== null) clearTimeout(timerId);
     };
-  }, [repoId]);
+  }, [repoId, reloadCount]);
 
-  return { status, couplings, loading, error };
+  return { status, couplings, loading, error, reload };
 }
