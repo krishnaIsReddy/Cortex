@@ -44,6 +44,8 @@ async function fetchJson(url, options) {
   return response.json();
 }
 
+// Returns a Promise of the risk report for a repo: { repo, files }.
+// See mockData/index.js for the fields of each part. `files` is unsorted.
 // Cleans up a pasted repo URL so the same repo always gets the same URL:
 // trims spaces, and removes a trailing "/" or ".git".
 // e.g. " https://github.com/owner/repo.git/ " -> "https://github.com/owner/repo"
@@ -51,8 +53,8 @@ export function normalizeRepoUrl(url) {
   return url.trim().replace(/\/+$/, "").replace(/\.git$/, "");
 }
 
-// Asks the backend to clone and ingest a public GitHub repo. Requires the user
-// to be signed in. Slow for big repos: the request lasts until ingestion ends.
+// Asks the backend to clone and ingest a public GitHub repo. No session needed
+// for public repos. Slow for big repos: the request lasts until ingestion ends.
 // Returns a Promise of { status, url }.
 export function ingestRepo(url) {
   return fetchJson("/repos", {
@@ -134,4 +136,13 @@ export async function getRiskTrend(repoId, months = null) {
   // Return copies so callers can't change the mock data.
   const latest = months ? trend.slice(-months) : trend;
   return latest.map((point) => ({ ...point }));
+// Returns a Promise of { status, couplings } for a live repo.
+//   status     - "pending" | "ready" | "failed"
+//   couplings  - file pairs (empty while pending/failed)
+// Sample repos have no coupling data, so they report ready with an empty list.
+export async function getCouplings(repoId) {
+  if (!isLiveRepoId(repoId)) {
+    return { status: "ready", couplings: [] };
+  }
+  return fetchJson(`/api/repos/${repoId}/couplings`);
 }

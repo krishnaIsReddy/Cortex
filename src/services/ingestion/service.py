@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.db.models.repo import Repo
 from src.db.repositories.repo_repository import (
     bulk_insert_commits,
     bulk_insert_file_changes,
@@ -10,8 +11,13 @@ from src.services.ingestion.clone import clone_or_pull
 from src.services.ingestion.parser import parse_commits
 
 
-async def ingest_repo(repo_url: str, db: AsyncSession) -> None:
-    """Clone a repo, parse its commits, and persist everything to Postgres."""
+async def ingest_repo(repo_url: str, db: AsyncSession) -> Repo:
+    """Clone a repo, parse its commits, and persist everything to Postgres.
+
+    Coupling scores are computed afterwards by a background task so this
+    request does not wait on the co-change self-join. Returns the repo so
+    the caller can schedule that job.
+    """
 
     # 1. Clone the repo (or fetch if already cloned)
     local_path = clone_or_pull(repo_url)
@@ -35,3 +41,4 @@ async def ingest_repo(repo_url: str, db: AsyncSession) -> None:
 
     # 7. Commit the whole transaction at once
     await db.commit()
+    return repo
