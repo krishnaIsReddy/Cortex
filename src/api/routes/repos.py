@@ -7,7 +7,7 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.deps.auth import get_current_user, get_current_user_optional
+from src.api.deps.auth import get_current_user_optional
 from src.api.schemas.coupling import CouplingsResponse, FileCouplingOut
 from src.db.models.file_coupling import FileCoupling
 from src.db.session import get_db
@@ -85,13 +85,13 @@ async def get_couplings(
     repo_id: uuid.UUID,
     min_score: float = Query(0.3, ge=0.0, le=1.0, description="Minimum coupling score to include"),
     limit: int = Query(50, ge=1, le=500, description="Maximum number of pairs to return"),
-    user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> CouplingsResponse:
     """Return coupling status and file pairs sorted by score (descending).
 
-    While a background job is running, `status` is "pending" and `couplings`
-    is empty so the UI can show "Determining coupling…".
+    Open without sign-in, like the risk report (only public repos are ingested
+    so far). While a background job is running, `status` is "pending" and
+    `couplings` is empty so the UI can show "Determining coupling…".
     """
     status = coupling_job_status(repo_id)
     if status == "pending":
