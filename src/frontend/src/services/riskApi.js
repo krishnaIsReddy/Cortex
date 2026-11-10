@@ -3,6 +3,7 @@
 // kinds of repos:
 //   - Live repos, ingested by the backend. Their IDs are UUIDs from the API.
 //   - Sample datasets (services/mockData/), identified by short names like "cortex".
+import { sampleCouplings } from "./mockData/couplings.js";
 import { SAMPLE_HALF_LIFE_DAYS, sampleReports } from "./mockData/index.js";
 import { sampleTrends } from "./mockData/trends.js";
 
@@ -136,13 +137,25 @@ export async function getRiskTrend(repoId, months = null) {
   // Return copies so callers can't change the mock data.
   const latest = months ? trend.slice(-months) : trend;
   return latest.map((point) => ({ ...point }));
+}
+
 // Returns a Promise of { status, couplings } for a live repo.
 //   status     - "pending" | "ready" | "failed"
 //   couplings  - file pairs (empty while pending/failed)
-// Sample repos have no coupling data, so they report ready with an empty list.
+// Sample datasets use hand-written pairs in mockData/couplings.js.
 export async function getCouplings(repoId) {
-  if (!isLiveRepoId(repoId)) {
-    return { status: "ready", couplings: [] };
+  if (isLiveRepoId(repoId)) {
+    return fetchJson(`/api/repos/${repoId}/couplings`);
   }
-  return fetchJson(`/api/repos/${repoId}/couplings`);
+
+  await new Promise((resolve) => setTimeout(resolve, MOCK_DELAY_MS));
+
+  if (!(repoId in sampleCouplings)) {
+    throw new Error(`No coupling data found for repository "${repoId}".`);
+  }
+
+  return {
+    status: "ready",
+    couplings: sampleCouplings[repoId].map((pair) => ({ ...pair })),
+  };
 }

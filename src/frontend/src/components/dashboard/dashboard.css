@@ -41,6 +41,36 @@
   background: oklch(0.27 0.07 25);
 }
 
+.coupling-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.coupling-panel__summary {
+  padding: var(--space-3) var(--space-4);
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style-position: outside;
+}
+
+.coupling-panel__summary:hover {
+  color: var(--color-accent);
+}
+
+.coupling-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.coupling-panel .text-muted {
+  color: var(--color-text-muted);
+}
+
 .dashboard__header {
   display: flex;
   flex-direction: column;
