@@ -3,6 +3,7 @@
 // Handles loading and error states like the main dashboard.
 import { useEffect, useRef } from "react";
 import AuthorBreakdown from "./AuthorBreakdown.jsx";
+import FileSummary from "./FileSummary.jsx";
 import RiskBadge from "./RiskBadge.jsx";
 import { formatDate, formatPercent, formatRelative, isStale, pluralize } from "./format.js";
 import { getRiskLevel, riskClassName } from "./riskLevels.js";
@@ -38,7 +39,7 @@ export default function FileDetail({ repoId, repoUrl, path, onBack }) {
       </div>
     );
   } else {
-    content = <FileDetailBody detail={detail} repoUrl={repoUrl} />;
+    content = <FileDetailBody detail={detail} repoId={repoId} repoUrl={repoUrl} />;
   }
 
   const level = detail && !loading ? getRiskLevel(detail.riskScore) : null;
@@ -64,7 +65,7 @@ export default function FileDetail({ repoId, repoUrl, path, onBack }) {
   );
 }
 
-function FileDetailBody({ detail, repoUrl }) {
+function FileDetailBody({ detail, repoId, repoUrl }) {
   const stale = isStale(detail.lastChangedAt);
   const originalAuthor = [...detail.authors].sort(
     (a, b) => b.historicalShare - a.historicalShare
@@ -103,6 +104,9 @@ function FileDetailBody({ detail, repoUrl }) {
           remember how it works.
         </p>
       )}
+
+      {/* key: a different file starts with a fresh "Summarize" button. */}
+      <FileSummary key={detail.path} repoId={repoId} path={detail.path} />
 
       <div className="file-detail__section">
         <h3 className="file-detail__heading">Authors</h3>

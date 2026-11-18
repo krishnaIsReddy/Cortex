@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     session_secret_key: str = ""
     frontend_url: str = "http://localhost:5173"
 
+    # Google Gemini, for the AI risk summary (src/ai/explainer.py). Without a
+    # key, summaries fall back to a plain template of the same numbers.
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-3.5-flash-lite"
+
     @property
     def github_private_key(self) -> str:
         if not self.github_app_private_key_b64:

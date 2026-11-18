@@ -114,6 +114,20 @@ export async function getFileDetail(repoId, path) {
   return { ...file, halfLifeDays: SAMPLE_HALF_LIFE_DAYS, commitCount: null, commits: [] };
 }
 
+// Asks the backend for a 2-3 sentence explanation of why a live repo's file
+// has its risk score. Returns a Promise of { text, authors, source, reason }:
+//   text    - refers to authors by label, e.g. "Author A wrote 92%..."
+//   authors - the real name behind each label: [{ label, name }]
+//   source  - "ai" (written by Gemini) or "template" (plain summary of the numbers)
+//   reason - why the template was used: "not_configured", "rate_limited",
+//            "failed" or "invalid_output"; null for AI summaries
+// Only for live repos: sample data isn't stored on the backend.
+export function summarizeFile(repoId, path) {
+  return fetchJson(`/api/repos/${repoId}/file-summary?path=${encodeURIComponent(path)}`, {
+    method: "POST",
+  });
+}
+
 // Returns a Promise of a repo's risk history, oldest month first:
 // [{ periodEnd, highRiskShare, highRiskFileCount, fileCount, commitCount }]
 // (see mockData/trends.js for the fields), one per month from the first
@@ -136,6 +150,8 @@ export async function getRiskTrend(repoId, months = null) {
   // Return copies so callers can't change the mock data.
   const latest = months ? trend.slice(-months) : trend;
   return latest.map((point) => ({ ...point }));
+}
+
 // Returns a Promise of { status, couplings } for a live repo.
 //   status     - "pending" | "ready" | "failed"
 //   couplings  - file pairs (empty while pending/failed)

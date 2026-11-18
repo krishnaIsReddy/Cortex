@@ -30,12 +30,10 @@ function filterFiles(files, query, selectedLevel) {
   });
 }
 
-export default function Dashboard({ repoId }) {
-  const { repo, files, loading, error, reload } = useRiskReport(repoId);
-  const { status: couplingStatus } = useCouplings(repoId);
 // `onRemoveRepo` is optional; when given, the header shows a "Remove" button.
 export default function Dashboard({ repoId, onRemoveRepo }) {
   const { repo, halfLifeDays, files, loading, error, reload } = useRiskReport(repoId);
+  const { status: couplingStatus } = useCouplings(repoId);
 
   // The file whose drill-down is open (null = show the table), and the file
   // the user last came back from, so the table can return focus to it.
@@ -110,7 +108,7 @@ export default function Dashboard({ repoId, onRemoveRepo }) {
 
   return (
     <section className="dashboard" aria-labelledby="dashboard-title">
-      {repo && <RepoHeader repo={repo} fileCount={files.length} />}
+      {repo && <RepoHeader repo={repo} fileCount={files.length} onRemove={onRemoveRepo} />}
       {couplingStatus === "pending" && (
         <p className="coupling-status" aria-live="polite">
           Determining coupling…
@@ -121,8 +119,6 @@ export default function Dashboard({ repoId, onRemoveRepo }) {
           Could not determine file coupling for this repository.
         </p>
       )}
-      <RiskExplainer />
-      {repo && <RepoHeader repo={repo} fileCount={files.length} onRemove={onRemoveRepo} />}
       <RiskExplainer halfLifeDays={halfLifeDays} />
 
       {/* Skipped when the report failed, so the page shows one error, not two. */}
@@ -132,7 +128,7 @@ export default function Dashboard({ repoId, onRemoveRepo }) {
         <h2 id="dashboard-title" className="dashboard__title">File risk</h2>
         <p className="dashboard__subtitle">
           Files where most of the code was written by one person, riskiest first.
-          Click a file to see its authors and recent commits.
+          Click a file to see its authors, recent commits, and request a short summmary of its risk score.
         </p>
       </header>
 
