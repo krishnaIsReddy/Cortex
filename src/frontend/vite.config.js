@@ -13,8 +13,10 @@ export default defineConfig({
     // (no CORS setup needed, and the login session cookie is sent normally).
     proxy: {
       "/api": API_URL,
-      // Repo ingestion (POST /repos) isn't under /api yet.
-      "/repos": API_URL,
+      // Repo ingestion (POST /repos) isn't under /api yet. Matched exactly
+      // (a "^" key is a regex) so page URLs like /repos/<id>/files stay with
+      // the frontend's router instead of going to the backend.
+      "^/repos$": API_URL,
     },
   },
 });

@@ -1,0 +1,152 @@
+/* Small charts used across the pages: the High/Medium/Low mix bar, share
+   bars, the trend sparkline, and initials avatars. Risk colors come from the
+   .risk--{level} classes in dashboard.css; everything else stays neutral. */
+
+/* ---- Risk mix bar: one segment per level, widths = share of files ---- */
+.risk-mix {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.risk-mix__bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--color-surface-raised);
+}
+
+.risk-mix--thin .risk-mix__bar {
+  height: 6px;
+}
+
+.risk-mix__segment {
+  height: 100%;
+  background: var(--risk-color);
+}
+
+/* Low stays a quiet grey so High and Medium are what you notice. */
+.risk-mix__segment.risk--low {
+  background: oklch(0.38 0 0);
+}
+
+.risk-mix__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.risk-mix__legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.risk-mix__swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--risk-color);
+}
+
+.risk-mix__swatch.risk--low {
+  background: oklch(0.38 0 0);
+}
+
+.risk-mix__legend strong {
+  color: var(--color-text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Share bar: a single 0-100% bar, neutral unless given a risk class ---- */
+.share-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.share-bar__track {
+  flex: 1 1 60px;
+  min-width: 40px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--color-surface-raised);
+}
+
+.share-bar__fill {
+  height: 100%;
+  border-radius: 3px;
+  background: oklch(0.6 0 0);
+}
+
+.share-bar.risk--high .share-bar__fill,
+.share-bar.risk--medium .share-bar__fill {
+  background: var(--risk-color);
+}
+
+.share-bar__label {
+  flex: none;
+  min-width: 3.5ch;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ---- Sparkline ---- */
+.sparkline {
+  display: block;
+  width: 100%;
+  height: 36px;
+  overflow: visible;
+}
+
+.sparkline__area {
+  fill: oklch(0.3 0 0 / 0.5);
+}
+
+.sparkline__line {
+  fill: none;
+  stroke: oklch(0.6 0 0);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---- Avatar: initials on a low-chroma tint, so names are easy to scan
+   without competing with the risk colors ---- */
+.avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--avatar-size, 28px);
+  height: var(--avatar-size, 28px);
+  border-radius: 50%;
+  background: oklch(0.32 0.035 var(--avatar-hue));
+  color: oklch(0.88 0.05 var(--avatar-hue));
+  font-size: calc(var(--avatar-size, 28px) * 0.4);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
+}
+
+/* A name with its avatar, e.g. in tables and lists. */
+.person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}

@@ -9,7 +9,8 @@ import { getRiskLevel, riskClassName } from "./riskLevels.js";
 import { useFileDetail } from "../../hooks/useFileDetail.js";
 
 // `repoUrl` is used to link commits to GitHub; `onBack` returns to the table.
-export default function FileDetail({ repoId, repoUrl, path, onBack }) {
+// `authorHref(name)` (optional) turns author names into links.
+export default function FileDetail({ repoId, repoUrl, path, onBack, authorHref }) {
   const { detail, loading, error, reload } = useFileDetail(repoId, path);
 
   // Move focus to the heading when the view opens, so keyboard and screen
@@ -38,7 +39,7 @@ export default function FileDetail({ repoId, repoUrl, path, onBack }) {
       </div>
     );
   } else {
-    content = <FileDetailBody detail={detail} repoUrl={repoUrl} />;
+    content = <FileDetailBody detail={detail} repoUrl={repoUrl} authorHref={authorHref} />;
   }
 
   const level = detail && !loading ? getRiskLevel(detail.riskScore) : null;
@@ -64,7 +65,7 @@ export default function FileDetail({ repoId, repoUrl, path, onBack }) {
   );
 }
 
-function FileDetailBody({ detail, repoUrl }) {
+function FileDetailBody({ detail, repoUrl, authorHref }) {
   const stale = isStale(detail.lastChangedAt);
   const originalAuthor = [...detail.authors].sort(
     (a, b) => b.historicalShare - a.historicalShare
@@ -110,7 +111,7 @@ function FileDetailBody({ detail, repoUrl }) {
           Current share weights each commit by its age: a commit {detail.halfLifeDays} days
           older than the newest counts half as much. The risk score uses the current share.
         </p>
-        <AuthorBreakdown authors={detail.authors} />
+        <AuthorBreakdown authors={detail.authors} authorHref={authorHref} />
       </div>
 
       <div className="file-detail__section">

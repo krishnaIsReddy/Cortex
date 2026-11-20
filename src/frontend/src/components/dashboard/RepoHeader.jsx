@@ -1,6 +1,7 @@
-// Shows which repository the dashboard is analyzing and the scope of the
-// analysis (branch, when it ran, how much history was included).
+// Shows which repository is open and the scope of the analysis (branch,
+// when it ran, how much history was included).
 import { pluralize } from "./format.js";
+import Icon from "../layout/Icon.jsx";
 
 // Formats an ISO timestamp for the viewer's locale, e.g. "Oct 7, 2026, 11:30 AM".
 function formatDateTime(isoString) {
@@ -12,18 +13,33 @@ function formatDateTime(isoString) {
 
 // `onRemove` is optional: when given, a "Remove" button is shown.
 export default function RepoHeader({ repo, fileCount, onRemove }) {
+  // "tartley/colorama" -> owner "tartley", name "colorama".
+  const slash = repo.name.indexOf("/");
+  const owner = slash === -1 ? null : repo.name.slice(0, slash);
+  const shortName = slash === -1 ? repo.name : repo.name.slice(slash + 1);
+
   return (
     <div className="repo-header">
       <div className="repo-header__name-row">
-        <a className="repo-header__name" href={repo.url} target="_blank" rel="noreferrer">
-          {repo.name}
-        </a>
+        <div className="repo-header__titles">
+          {owner && <span className="repo-header__owner">{owner}</span>}
+          <h1 className="repo-header__name">{shortName}</h1>
+        </div>
         {repo.isSample && <span className="repo-header__tag">Sample data</span>}
-        {onRemove && (
-          <button type="button" className="button repo-header__remove" onClick={onRemove}>
-            Remove
-          </button>
-        )}
+
+        <div className="repo-header__actions">
+          {repo.url && (
+            <a className="button button--small button--icon" href={repo.url} target="_blank" rel="noreferrer">
+              <Icon name="external" size={14} />
+              GitHub
+            </a>
+          )}
+          {onRemove && (
+            <button type="button" className="button button--small" onClick={onRemove}>
+              Remove
+            </button>
+          )}
+        </div>
       </div>
 
       {/* One line of facts about what was analyzed. Branch and date are

@@ -1,19 +1,31 @@
-// Root component: the app header (repo picker + sign-in), the "connect a
-// repository" box, and the dashboard for the chosen repo (a live repo from the
-// backend, or a sample dataset).
+// Root component: the sidebar, plus one route per page (see routes.js).
+// Owns the app-wide data every page shares: the signed-in user and the list
+// of analyzed repos, and the actions that change that list (analyze, remove).
 import { useState } from "react";
-import ConnectRepoForm from "./components/auth/ConnectRepoForm.jsx";
-import UserBadge from "./components/auth/UserBadge.jsx";
-import Dashboard from "./components/dashboard/Dashboard.jsx";
-import RepoPicker from "./components/dashboard/RepoPicker.jsx";
+import { Navigate, Route, Routes, useNavigate } from "react-router";
+import Sidebar from "./components/layout/Sidebar.jsx";
+import NotFoundPage from "./pages/NotFoundPage.jsx";
+import RepositoriesPage from "./pages/RepositoriesPage.jsx";
+import ScoringPage from "./pages/ScoringPage.jsx";
+import CouplingTab from "./pages/repo/CouplingTab.jsx";
+import FilesTab from "./pages/repo/FilesTab.jsx";
+import FileTab from "./pages/repo/FileTab.jsx";
+import FoldersTab from "./pages/repo/FoldersTab.jsx";
+import HistoryTab from "./pages/repo/HistoryTab.jsx";
+import OverviewTab from "./pages/repo/OverviewTab.jsx";
+import PeopleTab from "./pages/repo/PeopleTab.jsx";
+import PersonTab from "./pages/repo/PersonTab.jsx";
+import RepoRoute from "./pages/repo/RepoLayout.jsx";
 import { useCurrentUser } from "./hooks/useCurrentUser.js";
 import { useLiveRepos } from "./hooks/useLiveRepos.js";
+import { REPOSITORIES_PATH, SCORING_PATH, repoPath } from "./routes.js";
 import { isLiveRepoId, removeRepo } from "./services/riskApi.js";
 
 // Shown when the backend has no ingested repos (or isn't running).
 const FALLBACK_REPO_ID = "cortex";
 
 export default function App() {
+  const navigate = useNavigate();
   const { user, loading: userLoading, signOut } = useCurrentUser();
   const {
     repos: liveRepos,
@@ -22,39 +34,34 @@ export default function App() {
     reload: reloadLiveRepos,
   } = useLiveRepos();
 
-  // The repo the user picked, or null if they haven't picked one yet.
-  const [selectedRepoId, setSelectedRepoId] = useState(null);
-
-  // Bumped after every ingestion so the dashboard reloads, even when the
+  // Bumped after every ingestion so the repo's pages reload, even when the
   // re-analyzed repo is the one already on screen.
   const [analysisCount, setAnalysisCount] = useState(0);
 
-  // Until the user picks, show the newest live repo, or the fallback sample.
-  // While the live list is still loading, wait instead of flashing the sample.
-  const repoId =
-    selectedRepoId ?? (liveLoading ? null : liveRepos[0]?.id ?? FALLBACK_REPO_ID);
+  // The open repo's counts for the sidebar, sent up by its RepoLayout.
+  const [repoSummary, setRepoSummary] = useState(null);
 
-  // After a repo is ingested: refresh the picker's list and switch to that repo.
+  // After a repo is ingested: refresh the repo list and open its Overview.
   const handleRepoConnected = async (repoUrl) => {
     const repos = await reloadLiveRepos();
     const connected = repos.find((repo) => repo.url === repoUrl);
+    setAnalysisCount((count) => count + 1);
     if (connected) {
-      setSelectedRepoId(connected.id);
+      navigate(repoPath(connected.id));
     } else {
       console.warn(`App: ingested ${repoUrl} but it isn't in the repo list`);
     }
-    setAnalysisCount((count) => count + 1);
   };
 
-  // Deletes the live repo on screen (after confirming), then shows the next one.
-  const handleRemoveRepo = async () => {
+  // Deletes a live repo (after confirming), then shows the repository list.
+  const handleRemoveRepo = async (repoId) => {
     const repo = liveRepos.find((r) => r.id === repoId);
     if (!window.confirm(`Remove ${repo?.name ?? "this repo"} and its analysis from Cortex?`)) return;
 
     try {
       await removeRepo(repoId);
       await reloadLiveRepos();
-      setSelectedRepoId(null); // falls back to the newest remaining live repo
+      navigate(REPOSITORIES_PATH);
     } catch (err) {
       console.error(`App: removing repo ${repoId} failed`, err);
       window.alert(`Could not remove the repo: ${err.message}`);
@@ -62,38 +69,73 @@ export default function App() {
   };
 
   // Only live repos can be removed, and only by a signed-in user.
-  const canRemove = Boolean(user) && repoId !== null && isLiveRepoId(repoId);
+  const canRemove = (repoId) => Boolean(user) && isLiveRepoId(repoId);
 
   return (
-    <main className="app">
-      <header className="app__header">
-        <div>
-          <h1 className="app__title">Cortex</h1>
-          <p className="app__tagline">Codebase ownership &amp; bus-factor risk</p>
-        </div>
-        <div className="app__controls">
-          <RepoPicker
-            value={repoId ?? ""}
-            onChange={setSelectedRepoId}
-            liveRepos={liveRepos}
-            liveLoading={liveLoading}
-            liveError={liveError}
+    <div className="app">
+      <Sidebar
+        user={user}
+        userLoading={userLoading}
+        onSignOut={signOut}
+        liveRepos={liveRepos}
+        liveLoading={liveLoading}
+        liveError={liveError}
+        summary={repoSummary}
+      />
+
+      <main className="app__main">
+        <Routes>
+          {/* Until the user picks, open the newest live repo, or the fallback
+              sample. While the list loads, wait instead of flashing the sample. */}
+          <Route
+            path="/"
+            element={
+              liveLoading ? null : (
+                <Navigate to={repoPath(liveRepos[0]?.id ?? FALLBACK_REPO_ID)} replace />
+              )
+            }
           />
-          <UserBadge user={user} loading={userLoading} onSignOut={signOut} />
-        </div>
-      </header>
+          <Route
+            path={REPOSITORIES_PATH}
+            element={
+              <RepositoriesPage
+                user={user}
+                userLoading={userLoading}
+                liveRepos={liveRepos}
+                liveLoading={liveLoading}
+                liveError={liveError}
+                onConnected={handleRepoConnected}
+                onRemove={handleRemoveRepo}
+                canRemove={canRemove}
+              />
+            }
+          />
+          <Route path={SCORING_PATH} element={<ScoringPage />} />
 
-      {!userLoading && <ConnectRepoForm user={user} onConnected={handleRepoConnected} />}
+          <Route
+            path="/repos/:repoId"
+            element={
+              <RepoRoute
+                analysisCount={analysisCount}
+                onRemove={handleRemoveRepo}
+                canRemove={canRemove}
+                onSummary={setRepoSummary}
+              />
+            }
+          >
+            <Route index element={<OverviewTab />} />
+            <Route path="files" element={<FilesTab />} />
+            <Route path="files/*" element={<FileTab />} />
+            <Route path="folders" element={<FoldersTab />} />
+            <Route path="people" element={<PeopleTab />} />
+            <Route path="people/:name" element={<PersonTab />} />
+            <Route path="coupling" element={<CouplingTab />} />
+            <Route path="history" element={<HistoryTab />} />
+          </Route>
 
-      {/* A new key gives the Dashboard a fresh start (filters and expanded row
-          reset, data reloads) when switching repos or after re-analyzing. */}
-      {repoId && (
-        <Dashboard
-          key={`${repoId}-${analysisCount}`}
-          repoId={repoId}
-          onRemoveRepo={canRemove ? handleRemoveRepo : undefined}
-        />
-      )}
-    </main>
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </main>
+    </div>
   );
 }

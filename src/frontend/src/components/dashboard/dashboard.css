@@ -56,27 +56,6 @@
   color: var(--color-text-muted);
 }
 
-/* ---- Repo picker (live repos + sample datasets) ---- */
-.repo-picker {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.repo-picker__label {
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
-.repo-picker select {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-}
-
 /* ---- Repo header: which repo was analyzed ---- */
 .repo-header {
   display: flex;
@@ -132,34 +111,6 @@
   color: var(--color-text);
   font-family: var(--font-mono);
   font-weight: 500;
-}
-
-/* ---- "How risk is scored" explainer ---- */
-.risk-explainer summary {
-  width: fit-content;
-  color: var(--color-accent);
-  cursor: pointer;
-}
-
-.risk-explainer__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  max-width: 70ch;
-  margin-top: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-}
-
-.risk-explainer__levels {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: 0;
-  margin: 0;
-  list-style: none;
 }
 
 /* ---- Filters: search box + risk level toggles ---- */
