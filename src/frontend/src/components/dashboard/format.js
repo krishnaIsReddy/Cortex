@@ -6,8 +6,9 @@ export function formatPercent(share) {
 }
 
 // Returns "1 file" / "15 files", with the number formatted for the locale.
-export function pluralize(count, singular) {
-  return `${count.toLocaleString()} ${singular}${count === 1 ? "" : "s"}`;
+// Pass `plural` for irregular words, e.g. pluralize(3, "person", "people").
+export function pluralize(count, singular, plural = `${singular}s`) {
+  return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
 }
 
 // A file nobody has changed in this long is flagged as stale: whoever wrote

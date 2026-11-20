@@ -1,9 +1,11 @@
 // Every author of one file, largest current share first. Shows the current
 // (recency-weighted) share that drives the risk score next to the all-time
 // share, so it's clear when someone's knowledge of the file has faded.
+import { Link } from "react-router";
 import { formatDate, formatPercent } from "./format.js";
 
-export default function AuthorBreakdown({ authors }) {
+// `authorHref(name)` (optional) makes each name a link, e.g. to their People page.
+export default function AuthorBreakdown({ authors, authorHref }) {
   const sortedAuthors = [...authors].sort((a, b) => b.share - a.share);
 
   return (
@@ -21,7 +23,9 @@ export default function AuthorBreakdown({ authors }) {
         <tbody>
           {sortedAuthors.map((author, index) => (
             <tr key={author.name}>
-              <th scope="row" className="author-name">{author.name}</th>
+              <th scope="row" className="author-name">
+                {authorHref ? <Link to={authorHref(author.name)}>{author.name}</Link> : author.name}
+              </th>
               <td className="col-number">
                 <div className="share">
                   {/* The top author's bar uses the file's risk color; others stay neutral. */}

@@ -1,0 +1,1017 @@
+/* Styles for the app frame: sidebar, repo header, page headers, and the
+   building blocks the sections share (headline numbers, panels, lists).
+   Uses the tokens in index.css; risk colors come from dashboard.css. */
+
+/* ---- Links ---- */
+/* Links inside tables and lists read as text until hovered; the accent color
+   is kept for links that are clearly "go somewhere" (more →, back, sign in). */
+a {
+  color: var(--color-accent);
+}
+
+.author-name a,
+.plain-link,
+.file-link,
+.link-list__path,
+.link-list__name {
+  color: inherit;
+  text-decoration: none;
+}
+
+.author-name a:hover,
+.plain-link:hover,
+.file-link:hover,
+.link-list__path:hover,
+.link-list__name:hover {
+  text-decoration: underline;
+}
+
+.file-link {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.back-link,
+.overview__more {
+  width: fit-content;
+  text-decoration: none;
+}
+
+.back-link:hover,
+.overview__more:hover {
+  text-decoration: underline;
+}
+
+/* Numbers that carry a risk color as text (e.g. high-risk files owned). */
+.risk-text {
+  color: var(--risk-color);
+  font-weight: 600;
+}
+
+/* ---- Sidebar ---- */
+.sidebar {
+  position: relative;
+  z-index: 10;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.sidebar__inner {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  /* No overflow clipping here, so the repo switcher's menu can extend past
+     the sidebar's edge. */
+  height: 100vh;
+  padding: var(--space-4) var(--space-3);
+}
+
+.sidebar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.sidebar__logo {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-raised);
+  font-weight: 700;
+}
+
+.sidebar__brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.sidebar__name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sidebar__tagline {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.sidebar__picker {
+  padding: 0 var(--space-2);
+}
+
+/* ---- Repo switcher (button + searchable list) ---- */
+.repo-switcher {
+  position: relative;
+}
+
+.repo-switcher__button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 6px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease-out;
+}
+
+.repo-switcher__button:hover,
+.repo-switcher__button[aria-expanded="true"] {
+  border-color: var(--color-text-muted);
+}
+
+.repo-switcher__current {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.repo-switcher__owner {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repo-switcher__name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repo-switcher__name--placeholder {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.repo-switcher__chevron {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.repo-switcher__menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: max(100%, 300px);
+  max-width: calc(100vw - 2 * var(--space-4));
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: 0 16px 40px oklch(0 0 0 / 0.5);
+  animation: repo-switcher-in 120ms ease-out;
+}
+
+@keyframes repo-switcher-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.repo-switcher__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.repo-switcher__search input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-1) 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+}
+
+/* The menu's own border shows focus; the input itself doesn't need a ring. */
+.repo-switcher__search input:focus-visible {
+  outline: none;
+}
+
+.repo-switcher__search:focus-within {
+  color: var(--color-text);
+}
+
+.repo-switcher__list {
+  max-height: min(360px, 60vh);
+  padding: var(--space-1);
+  margin: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.repo-switcher__group {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.repo-switcher__status {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.repo-switcher__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 6px var(--space-2);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.repo-switcher__option.is-active {
+  background: var(--color-surface-raised);
+}
+
+.repo-switcher__option-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.repo-switcher__option-name {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repo-switcher__option-owner {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.repo-switcher__option-detail {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.repo-switcher__check {
+  flex: none;
+}
+
+.repo-switcher__empty {
+  padding: var(--space-4) var(--space-2);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.repo-switcher__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1);
+  border-top: 1px solid var(--color-border);
+}
+
+.repo-switcher__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px var(--space-2);
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.repo-switcher__action:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .repo-switcher__menu {
+    animation: none;
+  }
+}
+
+.sidebar__navs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sidebar__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sidebar__heading {
+  padding: 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sidebar__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 6px var(--space-2);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.sidebar__link:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+.sidebar__link.active {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-weight: 500;
+  box-shadow: inset 2px 0 0 var(--color-text);
+}
+
+.sidebar__label {
+  flex: 1;
+}
+
+.sidebar__count {
+  min-width: 22px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.sidebar__count.risk--high {
+  background: var(--risk-bg);
+  color: var(--risk-color);
+  font-weight: 600;
+}
+
+.sidebar__user--bottom {
+  margin-top: auto;
+  padding: var(--space-3) var(--space-2) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.sidebar__user--top {
+  display: none;
+}
+
+.sidebar .user-badge {
+  flex-wrap: wrap;
+}
+
+/* Narrow screens: the sidebar becomes a header, and each nav list a row
+   that scrolls sideways. */
+@media (max-width: 900px) {
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .sidebar__inner {
+    position: static;
+    height: auto;
+    padding: var(--space-3) var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .sidebar__head,
+  .sidebar__picker {
+    padding: 0;
+  }
+
+  .sidebar__user--top {
+    display: block;
+  }
+
+  .sidebar__user--bottom,
+  .sidebar__heading {
+    display: none;
+  }
+
+  .sidebar__navs {
+    flex-direction: row;
+    gap: var(--space-3);
+    margin: 0 calc(var(--space-4) * -1);
+    padding: 0 var(--space-4);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .sidebar__list {
+    flex-direction: row;
+  }
+
+  .sidebar__section + .sidebar__section {
+    padding-left: var(--space-3);
+    border-left: 1px solid var(--color-border);
+  }
+}
+
+/* ---- Repo page ---- */
+.repo-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.repo-header__titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.repo-header__owner {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.repo-header__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.button--icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.repo-header-skeleton {
+  height: 84px;
+  border-radius: var(--radius);
+  background: var(--color-surface-raised);
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ---- App-level pages (Repositories, How scoring works) ---- */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.page--prose {
+  max-width: 70ch;
+}
+
+.page__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.page__title {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.page__subtitle {
+  color: var(--color-text-muted);
+}
+
+.page__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.scoring-levels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* ---- Overview: headline numbers ---- */
+.stat-grid {
+  display: grid;
+  /* Four across on desktop, two on phones. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  height: 100%;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: border-color 150ms ease-out;
+}
+
+a.stat:hover {
+  border-color: var(--color-text-muted);
+}
+
+.stat__label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.stat__value {
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+/* Text values (a person's name) are smaller so long names fit. */
+.stat__value--small {
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+/* Only the high-risk number takes a risk color (from .risk--high). */
+.stat.risk--high .stat__value {
+  color: var(--risk-color);
+}
+
+/* A small chart between the number and its detail line. */
+.stat__chart {
+  display: block;
+  margin: var(--space-1) 0;
+}
+
+.stat-grid--compact .stat {
+  padding: var(--space-3) var(--space-4);
+}
+
+.stat-grid--compact .stat__value {
+  font-size: 22px;
+}
+
+.stat-grid--compact .stat__value--small {
+  font-size: 16px;
+}
+
+.stat__detail {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* ---- Overview: trend line and the two short lists ---- */
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.overview__trend {
+  color: var(--color-text-muted);
+}
+
+.overview__trend strong {
+  color: var(--color-text);
+}
+
+.overview__columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: var(--space-4);
+}
+
+.overview__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.overview__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.overview__heading .icon {
+  color: var(--color-text-muted);
+}
+
+.overview__hint {
+  margin-top: calc(var(--space-2) * -1);
+  font-size: 13px;
+}
+
+.overview__more {
+  margin-top: auto;
+}
+
+/* ---- Short lists of links (riskiest files, people, coupled files) ---- */
+.link-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.link-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.link-list li:last-child {
+  border-bottom: none;
+}
+
+.link-list__path {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.link-list__name {
+  flex: 1 1 auto;
+  font-weight: 500;
+}
+
+.link-list__meta {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* A list that stands alone on a page gets the same frame as a table. */
+.link-list--boxed {
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+/* Rows in the Overview panels: a name, a small chart, and a number. */
+.folder-row__name {
+  flex: 0 1 140px;
+}
+
+.folder-row__mix,
+.person-row__bar {
+  flex: 1 1 120px;
+  min-width: 80px;
+}
+
+.folder-row__meta,
+.person-row__meta {
+  flex: none;
+  min-width: 9ch;
+  text-align: right;
+}
+
+.person-row .link-list__name,
+.quiet-row .link-list__name {
+  flex: 0 1 190px;
+}
+
+/* Narrow screens: a name and its number on one line, the bar full width
+   under them, instead of the number wrapping onto a line of its own. */
+@media (max-width: 640px) {
+  .link-list li.folder-row,
+  .link-list li.person-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name meta"
+      "bar  bar";
+  }
+
+  .folder-row__name,
+  .person-row .link-list__name {
+    grid-area: name;
+  }
+
+  .folder-row__meta,
+  .person-row__meta {
+    grid-area: meta;
+    min-width: 0;
+  }
+
+  .folder-row__mix,
+  .person-row__bar {
+    grid-area: bar;
+  }
+
+  /* Riskiest files: path on the left, owner share and badge stacked right. */
+  .link-list li.file-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .file-row__owner,
+  .file-row > :last-child {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .file-row .link-list__path {
+    grid-row: span 2;
+  }
+}
+
+.file-row .link-list__path {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.file-row__base {
+  color: var(--color-text);
+}
+
+.file-row__dir {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.file-row__owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---- Folders ---- */
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.breadcrumbs li + li::before {
+  content: "/";
+  margin-right: var(--space-1);
+  color: var(--color-text-muted);
+}
+
+.breadcrumbs a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+.folder-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  align-items: center;
+  gap: var(--space-4) var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.folder-summary__text {
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 640px) {
+  .folder-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A folder or file name in the Folders table, with its icon. */
+.entry-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.entry-link:hover {
+  text-decoration: underline;
+}
+
+.entry-link .icon {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.entry-link--file {
+  font-weight: 400;
+}
+
+.entry-link__count {
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* A table column holding a small bar chart. */
+.risk-table .col-mix {
+  width: 28%;
+  min-width: 140px;
+}
+
+.table-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+/* ---- Repositories page ---- */
+.repo-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.repo-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  transition: border-color 150ms ease-out;
+}
+
+.repo-card:hover {
+  border-color: var(--color-text-muted);
+}
+
+.repo-card__name {
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+/* The whole card is clickable through the name's link; the action
+   buttons sit above it. */
+.repo-card__name::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+}
+
+.repo-card__detail {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.repo-card__actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: var(--space-2);
+  margin-top: auto;
+}
+
+.repo-cards--compact .repo-card {
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+}
+
+/* ---- Person page ---- */
+.person-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.person-header__name {
+  font-size: 22px;
+}
+
+/* ---- Small shared bits ---- */
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.button--small {
+  padding: 2px var(--space-3);
+  font-size: 13px;
+}
+
+.state-message__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .repo-header-skeleton {
+    animation: none;
+  }
+}
+
+/* "Top-level files" isn't a path, so it reads as a label, not code. */
+.folder-row__root {
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+}

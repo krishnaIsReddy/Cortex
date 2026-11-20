@@ -52,15 +52,24 @@ body {
 
 h1,
 h2,
+h3,
 p {
   margin: 0;
 }
 
-/* Page container: centered column with a 16px gutter on small screens. */
+/* App frame: the sidebar on the left, the page in a centered column beside
+   it. Below 900px the sidebar becomes a header above the page. */
 .app {
-  max-width: 1100px;
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.app__main {
+  width: 100%;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4) var(--space-8);
+  padding: var(--space-6) var(--space-8) var(--space-8);
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
@@ -68,35 +77,18 @@ p {
 
 /* Flex children default to min-width: auto, which lets wide content
    (like the table) stretch the page. 0 keeps them inside the screen. */
-.app > * {
+.app__main > * {
   min-width: 0;
 }
 
-.app__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3) var(--space-4);
-}
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-/* Right side of the header: repo picker and sign-in. */
-.app__controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3) var(--space-4);
-}
-
-.app__title {
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.app__tagline {
-  color: var(--color-text-muted);
-  font-size: 13px;
+  .app__main {
+    padding: var(--space-4) var(--space-4) var(--space-8);
+  }
 }
 
 /* Standard button (e.g. Retry, Clear filters). Also works on links. */
