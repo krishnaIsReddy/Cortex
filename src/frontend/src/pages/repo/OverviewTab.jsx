@@ -51,7 +51,7 @@ export default function OverviewTab() {
   const bus = busFactor(files, people);
   const owners = people.filter((person) => person.ownedFiles.length > 0);
   const rootListing = listFolder(files, "");
-  const topFolders = rootListing.folders.slice(0, LIST_LENGTH + 1);
+  const topFolders = rootListing.folders.slice(0, LIST_LENGTH);
   // Files directly in the repo root, shown as one more row so every file is counted.
   const rootFiles = summarizeFiles(rootListing.files);
   const riskiestFiles = [...files].sort((a, b) => b.riskScore - a.riskScore).slice(0, LIST_LENGTH);
@@ -60,7 +60,9 @@ export default function OverviewTab() {
     (person) => person.highRiskFiles.length > 0 && person.lastActiveAt && isStale(person.lastActiveAt)
   );
   const hasActivityDates = people.some((person) => person.lastActiveAt);
-  const maxOwned = owners[0]?.ownedFiles.length ?? 1;
+  // `people` is sorted by high-risk files first, so the biggest owner isn't
+  // necessarily owners[0]; bars are scaled to whoever owns the most.
+  const maxOwned = Math.max(1, ...owners.map((person) => person.ownedFiles.length));
 
   return (
     <div className="overview">
@@ -200,7 +202,7 @@ export default function OverviewTab() {
           ) : (
             <ul className="link-list">
               {quietOwners.slice(0, LIST_LENGTH).map((person) => (
-                <li key={person.name} className="person-row">
+                <li key={person.name} className="quiet-row">
                   <Link to={personPath(repoId, person.name)} className="person-chip link-list__name">
                     <Avatar name={person.name} />
                     <span>{person.name}</span>

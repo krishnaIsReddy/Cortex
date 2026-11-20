@@ -51,7 +51,11 @@ export default function PeopleTab() {
         <MiniStat
           label="Bus factor"
           value={bus.count}
-          detail="people own over half the files"
+          detail={
+            bus.count === 1
+              ? `${bus.names[0]} owns over half the files`
+              : "people own over half the files"
+          }
           risky={bus.count <= 2}
         />
         <MiniStat

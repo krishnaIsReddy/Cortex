@@ -749,8 +749,55 @@ a.stat:hover {
   text-align: right;
 }
 
-.person-row .link-list__name {
+.person-row .link-list__name,
+.quiet-row .link-list__name {
   flex: 0 1 190px;
+}
+
+/* Narrow screens: a name and its number on one line, the bar full width
+   under them, instead of the number wrapping onto a line of its own. */
+@media (max-width: 640px) {
+  .link-list li.folder-row,
+  .link-list li.person-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name meta"
+      "bar  bar";
+  }
+
+  .folder-row__name,
+  .person-row .link-list__name {
+    grid-area: name;
+  }
+
+  .folder-row__meta,
+  .person-row__meta {
+    grid-area: meta;
+    min-width: 0;
+  }
+
+  .folder-row__mix,
+  .person-row__bar {
+    grid-area: bar;
+  }
+
+  /* Riskiest files: path on the left, owner share and badge stacked right. */
+  .link-list li.file-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .file-row__owner,
+  .file-row > :last-child {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .file-row .link-list__path {
+    grid-row: span 2;
+  }
 }
 
 .file-row .link-list__path {

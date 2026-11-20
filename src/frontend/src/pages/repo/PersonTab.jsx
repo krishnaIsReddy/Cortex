@@ -118,7 +118,12 @@ export default function PersonTab() {
                 <td className="col-number text-muted">{Math.round(historicalShare * 100)}%</td>
                 <td>
                   {isOwner ? (
-                    <span className="text-muted">{person.name}</span>
+                    // Same chip shape as the other rows (so the column lines
+                    // up), but not a link: it's this page.
+                    <span className="person-chip text-muted">
+                      <Avatar name={person.name} size={22} />
+                      {person.name}
+                    </span>
                   ) : (
                     <Link to={personPath(repoId, file.topAuthor)} className="person-chip plain-link">
                       <Avatar name={file.topAuthor} size={22} />
