@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import datetime
 
 from src.db.session import async_session
-from src.services.scoring.coupling import compute_couplings
+from src.services.scoring.coupling import DEFAULT_MAX_COMMITS, compute_couplings
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +37,20 @@ def coupling_job_status(repo_id: uuid.UUID) -> str:
     return _job_status.get(repo_id, "ready")
 
 
-async def compute_couplings_job(repo_id: uuid.UUID) -> None:
+async def compute_couplings_job(
+    repo_id: uuid.UUID,
+    max_commits: int | None = DEFAULT_MAX_COMMITS,
+    since: datetime | None = None,
+) -> None:
     """Run coupling scoring in its own DB session after ingest returns."""
     try:
         async with async_session() as db:
-            await compute_couplings(db, repo_id)
+            await compute_couplings(
+                db,
+                repo_id,
+                max_commits=max_commits,
+                since=since,
+            )
             await db.commit()
         mark_coupling_ready(repo_id)
     except Exception:

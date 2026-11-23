@@ -6,16 +6,20 @@ import { getCouplings, isLiveRepoId } from "../services/riskApi.js";
 
 const POLL_MS = 2000;
 
-// Returns { status, couplings, loading, error }:
+// Returns { status, couplings, loading, error, reload }:
 //   status    - "pending" | "ready" | "failed" | null (samples / unknown)
 //   couplings - file pairs once ready (empty until then)
 //   loading   - true for the first request only
 //   error     - an Error if the request failed, otherwise null
+//   reload    - re-fetch / resume polling (e.g. after recompute)
 export function useCouplings(repoId) {
   const [status, setStatus] = useState(null);
   const [couplings, setCouplings] = useState([]);
   const [loading, setLoading] = useState(() => isLiveRepoId(repoId));
   const [error, setError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const reload = () => setRefreshKey((key) => key + 1);
 
   useEffect(() => {
     if (!isLiveRepoId(repoId)) {
@@ -59,7 +63,7 @@ export function useCouplings(repoId) {
       ignore = true;
       if (timerId !== null) clearTimeout(timerId);
     };
-  }, [repoId]);
+  }, [repoId, refreshKey]);
 
-  return { status, couplings, loading, error };
+  return { status, couplings, loading, error, reload };
 }

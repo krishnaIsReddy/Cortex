@@ -49,24 +49,34 @@ async def db_session():
     await engine.dispose()
 
 
-async def _seed_repo(db: AsyncSession, url: str, commits: list[list[str]]) -> uuid.UUID:
+async def _seed_repo(
+    db: AsyncSession,
+    url: str,
+    commits: list[list[str]],
+    *,
+    spaced_by: timedelta | None = None,
+) -> uuid.UUID:
     """Insert a repo whose commits each touch the given file paths.
 
     ``commits`` is one list of file paths per commit. Example:
     [["a.py", "b.py"], ["a.py"]] means two commits.
+
+    When ``spaced_by`` is set, commit N is stamped ``base + N * spaced_by``
+    so windowing tests can order by recency.
     """
     repo = Repo(url=url, local_path="/tmp/coupling-fixture")
     db.add(repo)
     await db.flush()
 
-    now = datetime.now(UTC)
+    base = datetime(2024, 1, 1, tzinfo=UTC)
     for index, paths in enumerate(commits):
+        committed_at = base + (spaced_by * index if spaced_by is not None else timedelta(0))
         commit = Commit(
             repo_id=repo.id,
             sha=f"{index:040x}",
             author_name="Test",
             author_email="test@test.com",
-            committed_at=now,
+            committed_at=committed_at,
             message=f"commit {index}",
             insertions=1,
             deletions=0,
@@ -423,6 +433,112 @@ class TestComputeCouplings:
 
         await compute_couplings(db_session, repo_id)
         assert await _couplings(db_session, repo_id) == []
+
+
+class TestCouplingCommitWindow:
+    """Count- and date-based windows limit which commits enter the score."""
+
+    @pytest.mark.asyncio
+    async def test_max_commits_uses_only_the_most_recent(self, db_session):
+        """Older co-changes fall outside the count window and do not form pairs."""
+        # 3 old a+b commits, then 3 recent c+d commits. With max_commits=3
+        # only c+d should couple.
+        repo_id = await _seed_repo(
+            db_session,
+            "https://example.com/max-commits",
+            [
+                ["a.py", "b.py"],
+                ["a.py", "b.py"],
+                ["a.py", "b.py"],
+                ["c.py", "d.py"],
+                ["c.py", "d.py"],
+                ["c.py", "d.py"],
+            ],
+            spaced_by=timedelta(days=1),
+        )
+
+        await compute_couplings(db_session, repo_id, max_commits=3)
+
+        pairs = {(row.file_a, row.file_b) for row in await _couplings(db_session, repo_id)}
+        assert pairs == {("c.py", "d.py")}
+
+    @pytest.mark.asyncio
+    async def test_since_excludes_older_commits(self, db_session):
+        """Commits before ``since`` do not contribute to coupling."""
+        repo_id = await _seed_repo(
+            db_session,
+            "https://example.com/since-window",
+            [
+                ["a.py", "b.py"],
+                ["a.py", "b.py"],
+                ["a.py", "b.py"],
+                ["c.py", "d.py"],
+                ["c.py", "d.py"],
+                ["c.py", "d.py"],
+            ],
+            spaced_by=timedelta(days=1),
+        )
+        # Commits are 2024-01-01 .. 2024-01-06; keep only the last three days.
+        since = datetime(2024, 1, 4, tzinfo=UTC)
+
+        await compute_couplings(db_session, repo_id, max_commits=None, since=since)
+
+        pairs = {(row.file_a, row.file_b) for row in await _couplings(db_session, repo_id)}
+        assert pairs == {("c.py", "d.py")}
+
+    @pytest.mark.asyncio
+    async def test_max_commits_and_since_intersect(self, db_session):
+        """Both filters apply: recent enough by date, then capped by count."""
+        # Days 1-6: a+b on 1-3, c+d on 4-5, e+f on 6.
+        # since=day 2 leaves days 2-6 (5 commits); max_commits=2 keeps days 5-6.
+        repo_id = await _seed_repo(
+            db_session,
+            "https://example.com/intersect-window",
+            [
+                ["a.py", "b.py"],
+                ["a.py", "b.py"],
+                ["a.py", "b.py"],
+                ["c.py", "d.py"],
+                ["c.py", "d.py"],
+                ["e.py", "f.py"],
+            ],
+            spaced_by=timedelta(days=1),
+        )
+        since = datetime(2024, 1, 2, tzinfo=UTC)
+
+        await compute_couplings(
+            db_session,
+            repo_id,
+            min_co_commits=1,
+            max_commits=2,
+            since=since,
+        )
+
+        pairs = {(row.file_a, row.file_b) for row in await _couplings(db_session, repo_id)}
+        # Day 5 = c+d, day 6 = e+f — each only once, so min_co_commits=1.
+        assert pairs == {("c.py", "d.py"), ("e.py", "f.py")}
+
+    @pytest.mark.asyncio
+    async def test_unlimited_window_scores_full_history(self, db_session):
+        """max_commits=None and since=None analyze every qualifying commit."""
+        repo_id = await _seed_repo(
+            db_session,
+            "https://example.com/unlimited-window",
+            [
+                ["a.py", "b.py"],
+                ["a.py", "b.py"],
+                ["a.py", "b.py"],
+                ["c.py", "d.py"],
+                ["c.py", "d.py"],
+                ["c.py", "d.py"],
+            ],
+            spaced_by=timedelta(days=1),
+        )
+
+        await compute_couplings(db_session, repo_id, max_commits=None, since=None)
+
+        pairs = {(row.file_a, row.file_b) for row in await _couplings(db_session, repo_id)}
+        assert pairs == {("a.py", "b.py"), ("c.py", "d.py")}
 
 
 class TestUpsertBatching:

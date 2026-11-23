@@ -55,12 +55,16 @@ export function normalizeRepoUrl(url) {
 
 // Asks the backend to clone and ingest a public GitHub repo. No session needed
 // for public repos. Slow for big repos: the request lasts until ingestion ends.
-// Returns a Promise of { status, url }.
-export function ingestRepo(url) {
+// Optional coupling window: { maxCommits, since } (ISO string or null).
+// Returns a Promise of { status, url, repoId, couplingStatus }.
+export function ingestRepo(url, { maxCommits, since } = {}) {
+  const body = { url };
+  if (maxCommits !== undefined) body.max_commits = maxCommits;
+  if (since !== undefined) body.since = since;
   return fetchJson("/repos", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify(body),
   });
 }
 
@@ -145,4 +149,19 @@ export async function getCouplings(repoId) {
     return { status: "ready", couplings: [] };
   }
   return fetchJson(`/api/repos/${repoId}/couplings`);
+}
+
+// Re-runs coupling for a live repo with an optional commit window.
+//   maxCommits - max recent commits to score (null = unlimited)
+//   since      - ISO date/datetime; only score commits at or after this
+// Returns a Promise of { status: "pending", repoId }.
+export function recomputeCouplings(repoId, { maxCommits, since } = {}) {
+  const body = {};
+  if (maxCommits !== undefined) body.max_commits = maxCommits;
+  if (since !== undefined) body.since = since;
+  return fetchJson(`/api/repos/${repoId}/couplings/recompute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }

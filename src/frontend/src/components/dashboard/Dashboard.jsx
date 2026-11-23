@@ -4,6 +4,7 @@
 // Handles every state explicitly so failures are never silent.
 import { useState } from "react";
 import "./dashboard.css";
+import CouplingPanel from "../coupling/CouplingPanel.jsx";
 import FileDetail from "./FileDetail.jsx";
 import FileRiskTable from "./FileRiskTable.jsx";
 import RepoHeader from "./RepoHeader.jsx";
@@ -30,12 +31,10 @@ function filterFiles(files, query, selectedLevel) {
   });
 }
 
-export default function Dashboard({ repoId }) {
-  const { repo, files, loading, error, reload } = useRiskReport(repoId);
-  const { status: couplingStatus } = useCouplings(repoId);
 // `onRemoveRepo` is optional; when given, the header shows a "Remove" button.
 export default function Dashboard({ repoId, onRemoveRepo }) {
   const { repo, halfLifeDays, files, loading, error, reload } = useRiskReport(repoId);
+  const { status: couplingStatus, reload: reloadCouplings } = useCouplings(repoId);
 
   // The file whose drill-down is open (null = show the table), and the file
   // the user last came back from, so the table can return focus to it.
@@ -110,19 +109,12 @@ export default function Dashboard({ repoId, onRemoveRepo }) {
 
   return (
     <section className="dashboard" aria-labelledby="dashboard-title">
-      {repo && <RepoHeader repo={repo} fileCount={files.length} />}
-      {couplingStatus === "pending" && (
-        <p className="coupling-status" aria-live="polite">
-          Determining coupling…
-        </p>
-      )}
-      {couplingStatus === "failed" && (
-        <p className="coupling-status coupling-status--error" role="alert">
-          Could not determine file coupling for this repository.
-        </p>
-      )}
-      <RiskExplainer />
       {repo && <RepoHeader repo={repo} fileCount={files.length} onRemove={onRemoveRepo} />}
+      <CouplingPanel
+        repoId={repoId}
+        status={couplingStatus}
+        onRecomputed={reloadCouplings}
+      />
       <RiskExplainer halfLifeDays={halfLifeDays} />
 
       {/* Skipped when the report failed, so the page shows one error, not two. */}

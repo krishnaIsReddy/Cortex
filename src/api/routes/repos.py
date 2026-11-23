@@ -1,17 +1,20 @@
 import re
 import uuid
+from datetime import datetime
 from subprocess import CalledProcessError
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.deps.auth import get_current_user, get_current_user_optional
 from src.api.schemas.coupling import CouplingsResponse, FileCouplingOut
 from src.db.models.file_coupling import FileCoupling
+from src.db.repositories.risk_repository import get_repo
 from src.db.session import get_db
 from src.services.ingestion.service import ingest_repo
+from src.services.scoring.coupling import DEFAULT_MAX_COMMITS
 from src.services.scoring.coupling_jobs import (
     compute_couplings_job,
     coupling_job_status,
@@ -27,7 +30,14 @@ GITHUB_REPO_URL = re.compile(
 )
 
 
-class RepoCreate(BaseModel):
+class CouplingWindow(BaseModel):
+    """Optional commit window for coupling. Pass max_commits=null for full history."""
+
+    max_commits: int | None = Field(default=DEFAULT_MAX_COMMITS, ge=1)
+    since: datetime | None = None
+
+
+class RepoCreate(CouplingWindow):
     """Request body: the public GitHub repo URL to ingest."""
 
     url: str
@@ -71,7 +81,12 @@ async def connect_repo(
         ) from exc
 
     mark_coupling_pending(repo.id)
-    background_tasks.add_task(compute_couplings_job, repo.id)
+    background_tasks.add_task(
+        compute_couplings_job,
+        repo.id,
+        payload.max_commits,
+        payload.since,
+    )
     return {
         "status": "ingested",
         "url": payload.url,
@@ -125,3 +140,30 @@ async def get_couplings(
             for c in couplings
         ],
     )
+
+
+@router.post("/api/repos/{repo_id}/couplings/recompute")
+async def recompute_couplings(
+    repo_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    payload: CouplingWindow | None = None,
+    user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Re-run coupling with an optional wider/narrower commit window.
+
+    Body may include max_commits and/or since (JSON null clears the count cap).
+    Does not re-ingest the repo — only recomputes scores from stored history.
+    """
+    if await get_repo(db, repo_id) is None:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    window = payload or CouplingWindow()
+    mark_coupling_pending(repo_id)
+    background_tasks.add_task(
+        compute_couplings_job,
+        repo_id,
+        window.max_commits,
+        window.since,
+    )
+    return {"status": "pending", "repoId": str(repo_id)}
