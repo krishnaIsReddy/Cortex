@@ -19,6 +19,10 @@ _PARAM_HEADROOM_RATIO = 0.9
 # Initial imports and other bulk commits add noise. Skip them when scoring.
 MAX_FILES_PER_COMMIT = 50
 
+# Cap how many commits coupling analyzes so large repos stay tractable.
+# Pass max_commits=None (and since=None) to analyze the full history.
+DEFAULT_MAX_COMMITS = 5000
+
 
 # ── Query builders (pure functions, return SQLAlchemy selectables) ──────
 
@@ -50,8 +54,17 @@ def _deleted_paths(repo_id: uuid.UUID):
     )
 
 
-def _repo_commit_ids(repo_id: uuid.UUID, max_files_per_commit: int = MAX_FILES_PER_COMMIT):
-    """Subquery: commit IDs in this repo that touch fewer than max_files_per_commit files."""
+def _repo_commit_ids(
+    repo_id: uuid.UUID,
+    max_files_per_commit: int = MAX_FILES_PER_COMMIT,
+    max_commits: int | None = DEFAULT_MAX_COMMITS,
+    since: datetime | None = None,
+):
+    """Subquery: commit IDs in this repo that touch fewer than max_files_per_commit files.
+
+    Optionally windowed by recency (`max_commits`) and/or date (`since`).
+    When both are set, both filters apply (intersection).
+    """
     file_counts = (
         select(
             FileChange.commit_id.label("commit_id"),
@@ -60,15 +73,19 @@ def _repo_commit_ids(repo_id: uuid.UUID, max_files_per_commit: int = MAX_FILES_P
         .group_by(FileChange.commit_id)
         .subquery("file_counts")
     )
-    return (
+    q = (
         select(Commit.id)
         .join(file_counts, file_counts.c.commit_id == Commit.id)
         .where(
             Commit.repo_id == repo_id,
             file_counts.c.file_count < max_files_per_commit,
         )
-        .subquery("repo_commits")
     )
+    if since is not None:
+        q = q.where(Commit.committed_at >= since)
+    if max_commits is not None:
+        q = q.order_by(Commit.committed_at.desc()).limit(max_commits)
+    return q.subquery("repo_commits")
 
 
 def _co_occurrence_pairs(repo_commit_sq, min_co_commits: int, deleted_paths):
@@ -194,19 +211,30 @@ async def compute_couplings(
     repo_id: uuid.UUID,
     min_co_commits: int = 3,
     max_files_per_commit: int = MAX_FILES_PER_COMMIT,
+    max_commits: int | None = DEFAULT_MAX_COMMITS,
+    since: datetime | None = None,
 ) -> None:
     """Compute co-change coupling scores for all file pairs in a repo.
 
     Commits that touch max_files_per_commit or more files are ignored so
     bulk imports do not look like coupling. Paths whose newest change is
-    a DELETE are skipped, matching the risk report. Does not commit.
-    Callers (e.g. ingest_repo) own the transaction so a failed upsert
-    batch rolls back the whole ingestion.
+    a DELETE are skipped, matching the risk report.
+
+    By default only the most recent ``max_commits`` commits are scored so
+    large repos stay tractable. Pass ``max_commits=None`` (and optionally
+    ``since``) to widen or remove the window. Does not commit. Callers
+    (e.g. ingest_repo) own the transaction so a failed upsert batch rolls
+    back the whole ingestion.
     """
 
     # 1. Build subqueries
     deleted_paths = _deleted_paths(repo_id)
-    repo_commit_sq = _repo_commit_ids(repo_id, max_files_per_commit)
+    repo_commit_sq = _repo_commit_ids(
+        repo_id,
+        max_files_per_commit,
+        max_commits=max_commits,
+        since=since,
+    )
     co_pairs = _co_occurrence_pairs(repo_commit_sq, min_co_commits, deleted_paths)
     file_totals = _file_total_commits(repo_commit_sq, deleted_paths)
 

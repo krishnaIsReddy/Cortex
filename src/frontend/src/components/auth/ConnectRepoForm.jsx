@@ -4,7 +4,12 @@
 // only needed for private repositories.
 import { useState } from "react";
 import "./auth.css";
+import CouplingWindowFields from "../coupling/CouplingWindowFields.jsx";
 import { LOGIN_URL } from "../../services/authApi.js";
+import {
+  buildCouplingWindowPayload,
+  COUPLING_WINDOW_MODES,
+} from "../../services/couplingWindow.js";
 import { ingestRepo, normalizeRepoUrl } from "../../services/riskApi.js";
 
 // Accepts https://github.com/<owner>/<repo> (after normalizeRepoUrl).
@@ -27,6 +32,9 @@ export default function ConnectRepoForm({ user, onConnected }) {
   const [url, setUrl] = useState("");
   const [working, setWorking] = useState(false);
   const [error, setError] = useState(null);
+  const [windowMode, setWindowMode] = useState(COUPLING_WINDOW_MODES.standard);
+  const [maxCommits, setMaxCommits] = useState("");
+  const [since, setSince] = useState("");
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -37,10 +45,22 @@ export default function ConnectRepoForm({ user, onConnected }) {
       return;
     }
 
+    let windowPayload;
+    try {
+      windowPayload = buildCouplingWindowPayload({
+        mode: windowMode,
+        maxCommits,
+        since,
+      });
+    } catch (validationError) {
+      setError(validationError.message);
+      return;
+    }
+
     setWorking(true);
     setError(null);
     try {
-      const { url: canonicalUrl } = await ingestRepo(repoUrl);
+      const { url: canonicalUrl } = await ingestRepo(repoUrl, windowPayload);
       setUrl("");
       await onConnected(canonicalUrl ?? repoUrl);
     } catch (err) {
@@ -70,6 +90,17 @@ export default function ConnectRepoForm({ user, onConnected }) {
           {working ? "Analyzing…" : "Analyze"}
         </button>
       </div>
+
+      <CouplingWindowFields
+        idPrefix="connect"
+        mode={windowMode}
+        onModeChange={setWindowMode}
+        maxCommits={maxCommits}
+        onMaxCommitsChange={setMaxCommits}
+        since={since}
+        onSinceChange={setSince}
+        disabled={working}
+      />
 
       {!user && (
         <p className="connect-repo__hint">

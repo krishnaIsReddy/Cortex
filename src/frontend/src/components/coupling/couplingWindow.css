@@ -1,0 +1,121 @@
+.coupling-window {
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.coupling-window__legend {
+  padding: 0 var(--space-1);
+  font-weight: 500;
+}
+
+.coupling-window__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.coupling-window__modes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.coupling-window__mode {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.coupling-window__mode input {
+  margin-top: 3px;
+}
+
+.coupling-window__mode-title {
+  display: block;
+  font-weight: 500;
+}
+
+.coupling-window__mode-detail {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.coupling-window__custom {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.coupling-window__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 14px;
+}
+
+.coupling-window__field input {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.coupling-window__field-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.coupling-window:disabled {
+  opacity: 0.6;
+}
+
+/* ---- Dashboard coupling panel ---- */
+.coupling-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.coupling-panel__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.coupling-panel__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.coupling-panel__subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.coupling-panel__form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.coupling-panel__error {
+  margin: 0;
+  color: var(--color-error);
+}

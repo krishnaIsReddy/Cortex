@@ -26,7 +26,7 @@ async def _fake_ingest(url: str, db):
     return SimpleNamespace(id=uuid.UUID("11111111-1111-1111-1111-111111111111"))
 
 
-async def _fake_coupling_job(repo_id) -> None:
+async def _fake_coupling_job(repo_id, max_commits=None, since=None) -> None:
     return None
 
 
