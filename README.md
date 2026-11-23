@@ -89,10 +89,13 @@ npm run dev
 ## Auth setup (first run)
 
 1. Register a GitHub App at https://github.com/settings/apps/new
-   - Redirect URI: http://localhost:8000/api/auth/github/callback
+   - Redirect URI: http://localhost:5173/api/auth/github/callback
+     (Vite proxies `/api` to FastAPI; login and callback must share this host.
+     Use `localhost`, not `127.0.0.1` — browsers treat them as different cookie hosts.)
    - Check "Request user authorization (OAuth) during installation"
    - Uncheck Webhook -> Active
    - Repository permissions -> Contents: Read-only
 2. Copy the Client ID; generate a Client secret.
-3. `cp .env.example .env` and paste both values.
+3. `cp .env.example .env` and paste both values (and keep `GITHUB_CALLBACK_URL` as above).
 4. `uvicorn src.main:app --reload`
+5. Open the app at http://localhost:5173 (not http://127.0.0.1:5173).

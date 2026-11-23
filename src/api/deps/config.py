@@ -13,7 +13,10 @@ class Settings(BaseSettings):
 
     github_client_id: str
     github_client_secret: str
-    github_callback_url: str = "http://localhost:8000/api/auth/github/callback"
+    # Must match the browser origin that starts login (Vite in dev), so the
+    # session cookie set on /github/login is sent back on /github/callback.
+    # localhost and 127.0.0.1 are different cookie hosts — pick one and stick to it.
+    github_callback_url: str = "http://localhost:5173/api/auth/github/callback"
 
     github_app_id: str | None = None
     github_app_private_key_b64: str | None = None

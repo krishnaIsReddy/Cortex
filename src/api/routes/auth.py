@@ -50,43 +50,51 @@ def callback(
     if not code:
         raise HTTPException(status_code=400, detail="Missing authorization code")
 
-    with httpx.Client(timeout=10) as client:
-        token_resp = client.post(
-            GITHUB_TOKEN_URL,
-            headers={"Accept": "application/json"},
-            data={
-                "client_id": settings.github_client_id,
-                "client_secret": settings.github_client_secret,
-                "code": code,
-                "redirect_uri": settings.github_callback_url,
-            },
-        )
-        token_resp.raise_for_status()
-        payload = token_resp.json()
-        token = payload.get("access_token")
-        if not token:
-            raise HTTPException(
-                status_code=400,
-                detail=payload.get("error_description")
-                or payload.get("error")
-                or "GitHub did not return a token",
+    try:
+        with httpx.Client(timeout=10, trust_env=False) as client:
+            token_resp = client.post(
+                GITHUB_TOKEN_URL,
+                headers={"Accept": "application/json"},
+                data={
+                    "client_id": settings.github_client_id,
+                    "client_secret": settings.github_client_secret,
+                    "code": code,
+                    "redirect_uri": settings.github_callback_url,
+                },
             )
+            token_resp.raise_for_status()
+            payload = token_resp.json()
+            token = payload.get("access_token")
+            if not token:
+                raise HTTPException(
+                    status_code=400,
+                    detail=payload.get("error_description")
+                    or payload.get("error")
+                    or "GitHub did not return a token",
+                )
 
-        auth_headers = {"Authorization": f"Bearer {token}", **GITHUB_API_HEADERS}
+            auth_headers = {"Authorization": f"Bearer {token}", **GITHUB_API_HEADERS}
 
-        user_resp = client.get(GITHUB_USER_URL, headers=auth_headers)
-        user_resp.raise_for_status()
-        profile = user_resp.json()
+            user_resp = client.get(GITHUB_USER_URL, headers=auth_headers)
+            user_resp.raise_for_status()
+            profile = user_resp.json()
 
-        # installation_id arrives in the callback query string, so the user
-        # controls it. Only store it if this user really has access to it.
-        verified_installation_id = None
-        if installation_id is not None:
-            inst_resp = client.get(GITHUB_INSTALLATIONS_URL, headers=auth_headers)
-            inst_resp.raise_for_status()
-            allowed = {i["id"] for i in inst_resp.json().get("installations", [])}
-            if installation_id in allowed:
-                verified_installation_id = installation_id
+            # installation_id arrives in the callback query string, so the user
+            # controls it. Only store it if this user really has access to it.
+            verified_installation_id = None
+            if installation_id is not None:
+                inst_resp = client.get(GITHUB_INSTALLATIONS_URL, headers=auth_headers)
+                inst_resp.raise_for_status()
+                allowed = {i["id"] for i in inst_resp.json().get("installations", [])}
+                if installation_id in allowed:
+                    verified_installation_id = installation_id
+    except HTTPException:
+        raise
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Could not reach GitHub to finish sign-in. Try again.",
+        ) from exc
 
     # The access token is used here and discarded -- never stored.
     request.session["github_id"] = profile["id"]
